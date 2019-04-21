@@ -1,18 +1,18 @@
-# NN_ERI Manual
+# erinn Manual
 
 ## 安裝(Installation)
 
 由於本套件使用python和matlab編寫，所以需要讓兩者都可以找到本套件。
 
-### matlab安裝NN_ERI
+### matlab安裝erinn
 
 ```matlab
-addpath(genpath('/path/to/NN_ERI'));
+addpath(genpath('/path/to/erinn'));
 ```
-### python安裝NN_ERI
+### python安裝erinn
 
 ```
-1. 將整個NN_ERI整個資料夾放進PYTHON的搜尋路徑
+1. 將整個erinn整個資料夾放進PYTHON的搜尋路徑
 2. 可以設定額外PYTHONPATH環境變數，令PYTHON可以搜尋到新的路徑
 ```
 
@@ -242,7 +242,7 @@ end
 
 
 
-## NN_ERI的HDF5儲存架構
+## erinn的HDF5儲存架構
 
 <span style="border:2px white solid; font-size:18px; background-color:rgba(255, 0, 0, 0.5);">由於python numpy套件預設是使用C-order(Row-major order) indexing，而matlab使用Fortran-order(column-major order) indexing，所以讀取檔案時需注意是否要轉置(2維矩陣的情況)。</span>
 
