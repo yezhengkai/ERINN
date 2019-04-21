@@ -1,0 +1,15 @@
+# Windows:
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Dir
+EarthImager/
+ERI/DASHU/
+ERI/test*/
+ERI/YONK/
+
+# Python:
+.idea/
+
+.gitignore
