@@ -44,14 +44,14 @@ end
 for i = 1:samples
     x_width = randi(x_width_range, 1);
     z_width = randi(z_width_range, 1);
-    x = randi([1, X-x_width], 1);
-    z = randi([1, Z-z_width], 1);
+    x = randi([1, X-x_width+1], 1);
+    z = randi([1, Z-z_width+1], 1);
 %     mu = -2;     % Mean of log10(X)
 %     std = 0.5;      % St. dev. of log10(X)
 %     sigma = power(10, mu + std*randn(1));
 %     sigma_abnormal = power(10, mu + std*randn(1));
     s = Sigma(i) * ones(sigma_size);
-    s(x+1:x+x_width, z+1:z+z_width) = sigma_abnormal(i);
+    s(x:x+x_width-1, z:z+z_width-1) = sigma_abnormal(i);
     Targets(i,:) = s(:)';
 end
 

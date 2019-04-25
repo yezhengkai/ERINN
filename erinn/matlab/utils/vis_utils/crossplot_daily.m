@@ -26,15 +26,17 @@ function fig = crossplot_daily(obs_V, pred_V)
 %% calculate metrics
 % 1. R squared
 Ybar = mean(obs_V);
-SS_tot = sum((obs_V - Ybar).^2);
-% SS_reg = sum((pred_V - Ybar).^2);
-SS_res = sum((obs_V - pred_V).^2);
+SS_tot = nansum((obs_V - Ybar).^2);
+% SS_reg = nansum((pred_V - Ybar).^2);
+SS_res = nansum((obs_V - pred_V).^2);
 R2 = 1 - SS_res/SS_tot;
 % 2. Root mean square
 RMS = sqrt(nanmean((obs_V - pred_V).^2));
-% 3. correlation coefficient
+% 3. Root mean squared relative error
+RMSRE = sqrt(nanmean(((obs_V - pred_V) ./ obs_V) .^ 2));
+% 4. correlation coefficient
 C = corrcoef(obs_V, pred_V);
-% 4. nan ratio
+% 5. nan ratio
 num_nan = sum(isnan(obs_V));
 num_obs_V = length(obs_V);
 nan_ratio = num_nan/num_obs_V;
@@ -77,9 +79,10 @@ ylabel('Predictive \DeltaV/I');
 % use text and then use annotation plot background color
 str = sprintf(['R^2: %6.4f\n',...
                'RMS: %6.4f\n',...
+               'RMSRE: %6.4f\n',...
                'corrcoef: %6.4f\n',...
                'nan ratio: %.2f%%'],...
-               R2, RMS, C(1, 2), nan_ratio);
+               R2, RMS, RMSRE, C(1, 2), nan_ratio);
 text(-lim + 0.01 * r, lim - 0.01 * r, str,...
     'FontName', 'Bookman',...
     'FontSize', 22,...

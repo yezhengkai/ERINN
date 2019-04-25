@@ -66,8 +66,11 @@ def read_urf(urf_file):
                 Rx_id = np.array(line.split(sep=','), dtype=np.int64, ndmin=2)
             elif line == 'RxP2':
                 line = f.readline().strip()
-                RxP2_id = np.array(line.split(sep=','),
-                                   dtype=np.int64, ndmin=2)
+                if line == '':
+                    RxP2_id = np.array([[np.nan]]).shape
+                else:
+                    RxP2_id = np.array(line.split(sep=','),
+                                       dtype=np.int64, ndmin=2)
             elif line.startswith(':Geometry'):
                 E_num = np.max(np.concatenate((Tx_id, Rx_id), axis=1))
                 line = [f.readline().strip().split(',') for i in range(E_num)]
@@ -506,6 +509,101 @@ def save_synth_data(model, src_h5, npz_list, data_generator=None, dest_h5=None, 
             print(f'*append {dest_h5}: {dset.name}')
 
 
+def save_daily_data(model, src_h5, urf_dir, dest_h5=None, preprocess=False,
+                    start=None, end=None, fmt='%Y%m%d'):
+    """Save daily data.
+
+    The synthetic data to be checked is saved to the hdf5 file, and then the crossplot of
+    the synthetic V/I and predictive V/I can be used to check the robustness of the NN model.
+
+    Parameters
+    ----------
+    model : Instance of `keras Model`
+        The neural network model for prediction.
+    src_h5 : str
+        hdf5 file contain forward modeling parameters in the /glob_para group.
+    urf_dir : str
+        Directory containing urf files.
+    dest_h5 : str, default None
+        Copy hdf5 file to new destination. The default is to use src_h5 as dest_h5.
+    preprocess : bool, default False
+        Do log transform?
+    start : str, default None
+        time string. e.g. '20180612'.
+        If 'start' is None, 'start' will use'00010101'.
+    end : str, default None
+        time string. e.g. '20180630'.
+        If 'end' is None, 'end' will use '99991231'.
+    fmt : str, default '%Y%m%d'
+        Format that parse 'start' and 'end' string.
+        It is strongly recommended not to change this format!
+
+    Returns
+    -------
+    None
+
+    References
+    ----------
+    http://download.nexusformat.org/sphinx/examples/h5py/index.html
+    """
+
+    dest_h5 = src_h5 if dest_h5 is None else dest_h5
+    os.makedirs(os.path.dirname(dest_h5), exist_ok=True)
+
+    if not os.path.isfile(dest_h5):
+        shutil.copy(src_h5, dest_h5)
+        print(f'copy {src_h5} to {dest_h5}')
+
+    # convert start and end to datetime.datetime instance
+    start, end = datetime_range(start, end, fmt=fmt)
+    # get receive_date list
+    dlist = list(''.join(dlist.split('.')[
+                 0:-1]) for dlist in os.listdir(urf_dir) if dlist.endswith(".urf"))
+    # filter dates in datetime range and return an iterable filter instance
+    it = filter(lambda t: datetime_in_range(t, start, end), dlist)
+    input_shape = model.layers[0].output_shape[1:]
+
+    for receive_date in it:
+
+        urf = os.path.join(urf_dir, f'{receive_date}.urf')
+        _, _, _, _, data = read_urf(urf)
+        obs_V = data[:, 4].reshape(1, -1)  # get resistance and reshape
+        V = np.nan_to_num(obs_V)  # replace nan with 0 !!!
+        missing_value = u'replace nan in obs_V with 0 for prediction'  # UTF-8 encoding
+        if preprocess:
+            log_transform(V, inverse=False, inplace=True)
+        pred_log_rho = model.predict(V.reshape(1, *input_shape), batch_size=1)
+        pred_log_rho = pred_log_rho.reshape(1, -1)
+
+        # Because use Fortran index, data matrix should be transposed.
+        obs_V = obs_V.T.astype('float64')
+        pred_log_rho = pred_log_rho.T.astype('float64')
+
+        with h5py.File(name=dest_h5, mode='a') as f:
+            # save pred_log_rho
+            try:
+                dset = f.create_dataset(
+                    f'/daily_data/{receive_date}/pred_log_rho',
+                    data=pred_log_rho, chunks=True)
+                dset.attrs['missing_value'] = missing_value
+                print(f'save {dest_h5}: {dset.name}')
+            except:
+                dset = f[f'/daily_data/{receive_date}/pred_log_rho']
+                dset[:] = pred_log_rho
+                dset.attrs['missing_value'] = missing_value
+                print(f'*resave {dest_h5}: {dset.name}')
+            # save obs_V
+            try:
+                dset = f.create_dataset(
+                    f'/daily_data/{receive_date}/obs_V',
+                    data=obs_V, chunks=True)
+                print(f'save {dest_h5}: {dset.name}')
+            except:
+                dset = f[f'/daily_data/{receive_date}/obs_V']
+                dset[:] = obs_V
+                print(f'*resave {dest_h5}: {dset.name}')
+
+
 def save_nn_model(model, output_dir='.', model_name='model.h5'):
     """Save keras model's object, weights, architecture and graph image.
 
@@ -761,7 +859,8 @@ def save_synth_data_ori(model, src_h5, synth_data, dest_h5=None):
             print(f'*append {dest_h5}: {dset.name}')
 
 
-def save_daily_data(model, src_h5, urf_dir, dest_h5=None, start=None, end=None, fmt='%Y%m%d'):
+# TODO: 刪除或修改 save_daily_data_ori
+def save_daily_data_ori(model, src_h5, urf_dir, dest_h5=None, start=None, end=None, fmt='%Y%m%d'):
     """Save daily data.
 
     The synthetic data to be checked is saved to the hdf5 file, and then the crossplot of
