@@ -8,6 +8,7 @@ addpath(genpath(toolbox_dir));
 prediction_dir = fullfile('..', 'models', 'predictions');
 config_json = fullfile('..', 'config', 'config.json');
 testing_h5 = fullfile(prediction_dir, 'testing.h5');
+daily_h5 = fullfile(prediction_dir, 'daily.h5');
 report_dir = fullfile('..', 'reports');
 
 out_testing_dir = fullfile(report_dir, 'testing_figs');
@@ -15,8 +16,8 @@ if ~exist(out_testing_dir, 'dir')
     mkdir(out_testing_dir);
 end
 
-para = jsondecode(fileread(config_json));
 synth_data_testing = load_synth_data(testing_h5);
+daily_data = load_daily_data(daily_h5);
 
 %% synthetic data: crossplot(synth_V v.s. pred_V)
 for i = 1:size(synth_data.synth_V, 1)
