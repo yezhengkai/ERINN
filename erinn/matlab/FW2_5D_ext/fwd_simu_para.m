@@ -3,7 +3,7 @@ function simu_para = fwd_simu_para(para)
 simu_para = para.simulate;
 %% Prepare parameters for get_2_5Dpara
 [srcloc, dx, dz, recloc, srcnum] = prepare_for_get_2_5Dpara(para);
-% [Tx_id, Rx_id, ~, coord, data] = read_urf(simu_para.geomatry_urf);
+% [Tx_id, Rx_id, ~, coord, data] = read_urf(simu_para.geometry_urf);
 % if isempty(data)
 %     C_pair = nchoosek(Tx_id, 2);
 %     P_pair = nchoosek(Rx_id, 2);

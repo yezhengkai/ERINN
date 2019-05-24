@@ -4,7 +4,7 @@ function [srcloc, dx, dz, recloc, srcnum] = prepare_for_get_2_5Dpara(para)
 
 simu_para = para.simulate;
 %% parameters for FW2_5D
-[Tx_id, Rx_id, ~, coord, data] = read_urf(simu_para.geomatry_urf);
+[Tx_id, Rx_id, ~, coord, data] = read_urf(simu_para.geometry_urf);
 
 % Collect pairs id
 if isempty(data)
