@@ -1,35 +1,57 @@
 function fig = structureplot_synth(synth_log_rho, pred_log_rho,...
                              nx, nz, xz, varargin)
-% TODO: 根據nx, nz來調整比例 => 轉換公式
-% config = jsondecode(fileread(config_json));
-% nx = config.nx;
-% nz = config.nz;
-% fig = structureplot_synth(synth_log_rho, pred_log_rho, nx, nz, xz)
-% fig.Position = [left, bottom, width, height]
+% Plot synthetic resistivity and predictive resistivity to illustrate 
+% subsurface structure.
+% 
+% 
+% Parameters
+% ----------
+% synth_log_rho : double, row vector or column vector
+%     Synthetic resistivity.
+% pred_log_rho : double, row vector or column vector
+%     Predictive resisticity.
+% nx : double
+%     Number of mesh in x direction in forward model.
+% nz : double
+%     Number of mesh in z direction in forward model.
+% xz : double
+%     Electrode position in forward model.
+% varargin : cell
+%     Keyword arguments.
+% 
+% Returns
+% -------
+% fig : figure graphics object
+%     We can post-process this figure before saving.
+% 
 
-
+%% parse keyword arguments
 % default parameters for keyword arguments
 default_metrics = {'None'};
-default_scale_of_metrics = 'linear';
+default_scale_of_metrics = 'log';
 
 % parse input arguments
 p = inputParser;
+metrics_set = {'mse', 'psnr', 'ssim'};
 valid_metric = @(x) iscell(x) && ...
-                    all(cellfun(@(y) (isstring(y) || ischar(y)), x));
+                    all(cellfun(@(y) (isstring(y) || ischar(y)), x)) && ...
+                    all(cellfun(@(y) ismember(lower(y), metrics_set), x));
+scale_set = {'log', 'linear'};
+valid_scale = @(x) ischar(x) && ismember(x, scale_set);
 addParameter(p, 'metrics', default_metrics, valid_metric);
-addParameter(p, 'scale_of_metrics', default_scale_of_metrics, ...
-             @(x) ischar(x) && ismember(x, {'log', 'linear'}))
+addParameter(p, 'scale_of_metrics', default_scale_of_metrics, valid_scale);
 parse(p, varargin{:});
 
-% set variables
+%% set variables
 metrics = p.Results.metrics;
 scale_of_metrics = p.Results.scale_of_metrics;
-x = linspace(0, nx, nx);
-z = linspace(0, nz, nz);
+x = [0, linspace(0.5, nx-0.5, nx), nx];
+z = [0, linspace(0.5, nz-0.5, nz), nz];
 [X, Z] = meshgrid(x, z);
 % levels = linspace(1, 3, 17);
 levels = 17;
 
+%% Metrics
 % scale of metrics
 if strcmp(scale_of_metrics, 'linear')
     rho = 10 .^ pred_log_rho;
@@ -38,7 +60,7 @@ else
     rho = pred_log_rho;
     rho_true = synth_log_rho;
 end
-% eevaluate metrics
+% evaluate metrics
 for i = 1:numel(metrics)
     if strcmpi(metrics{i}, 'MSE')
         metrics{i} = sprintf('MSE=%.4f', immse(rho, rho_true));
@@ -50,14 +72,14 @@ for i = 1:numel(metrics)
 end
 metrics = strjoin(metrics, ', ');
 if ~strcmp(metrics, 'None')
-title_msg = ['Predictive resistivity (', metrics, ')'];
+    title_msg = ['Predictive resistivity (', metrics, ')'];
 else
     title_msg = 'Predictive resistivity';
 end
 
-% plot
+%% plotting
 fig = figure;
-
+% synthetic
 ax1 = subplot(2, 1, 1);
 imagesc(0.5, 0.5, synth_log_rho);
 plot_electrode(xz);
@@ -68,8 +90,17 @@ adjust_cbar(ax1, cbar1);
 ax1.Tag = 'ax1';
 adjust_axis(ax1);
 
+
+% extrapolation for plotting pretty figure
+rho = zeros(nz + 2, nx + 2);
+rho(2:end - 1, 2:end - 1) = pred_log_rho;
+rho(1, 2:end - 1) = rho(2, 2:end - 1);
+rho(end, 2:end-1) = rho(end - 1, 2:end-1);
+rho(:, 1) = rho(:, 2);
+rho(:, end) = rho(:, end - 1);
+% predict
 ax2 = subplot(2, 1, 2);
-contourf(X, Z, pred_log_rho, levels, 'LineStyle','none');
+contourf(X, Z, rho, levels, 'LineStyle','none');
 plot_electrode(xz)
 title(sprintf(['Predictive resistivity -- ',...
                'PSNR=%.2f, ', 'SSIM=%.2f'], ...
@@ -96,20 +127,16 @@ hold off;
 end
 
 function adjust_axis(ax)
-
 ax.FontSize = 18; % All fontsize
 ax.LineWidth = 1.2; % box width
 ax.TickLength = [0.005, 0.025];
-
 end
 
 function adjust_cbar(ax, cbar)
-
 colormap(ax, 'jet');
 caxis([1, 3]) % colorbar range
 cbar.Label.String = '\Omega-m';
 cbar.Ticks = [1, 1.5, 2, 2.5, 3];
 cbar.TickLabels = {'10', '30', '100', '300', '1000'};
 cbar.LineWidth = 0.8; % box and tick width
-
 end

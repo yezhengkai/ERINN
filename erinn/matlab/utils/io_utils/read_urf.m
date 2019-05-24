@@ -5,7 +5,7 @@ if ~exist(urf, 'file')
     error('urf file does not exist.');
 end
 
-% predefine outout variables
+% predefine output variables
 Tx_id = [];
 Rx_id = [];
 RxP2_id = [];

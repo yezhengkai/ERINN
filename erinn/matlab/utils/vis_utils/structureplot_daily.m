@@ -1,16 +1,40 @@
 function fig = structureplot_daily(pred_log_rho, nx, nz, xz)
+% Plot predictive resistivity to illustrate subsurface structure.
 % 
-%
+% 
+% Parameters
+% ----------
+% pred_log_rho : double, row vector or column vector
+%     Predictive resisticity.
+% nx : double
+%     Number of mesh in x direction in forward model.
+% nz : double
+%     Number of mesh in z direction in forward model.
+% xz : double
+%     Electrode position in forward model.
+% 
+% Returns
+% -------
+% fig : figure graphics object
+%     We can post-process this figure before saving.
+% 
 
-x = linspace(0, nx, nx);
-z = linspace(0, nz, nz);
+x = [0, linspace(0.5, nx-0.5, nx), nx];
+z = [0, linspace(0.5, nz-0.5, nz), nz];
 [X, Z] = meshgrid(x, z);
 % levels = linspace(1, 3, 17);
 levels = 17;
 
+% extrapolation for plotting pretty figure
+rho = zeros(nz + 2, nx + 2);
+rho(2:end - 1, 2:end - 1) = pred_log_rho;
+rho(1, 2:end - 1) = rho(2, 2:end - 1);
+rho(end, 2:end-1) = rho(end - 1, 2:end-1);
+rho(:, 1) = rho(:, 2);
+rho(:, end) = rho(:, end - 1);
 
 fig = figure;
-contourf(X, Z, pred_log_rho, levels, 'LineStyle','none');
+contourf(X, Z, rho, levels, 'LineStyle','none');
 plot_electrode(xz)
 title('Predictive resistivity');
 xlabel('Width (m)'); ylabel('Depth (m)');

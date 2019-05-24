@@ -1,19 +1,21 @@
-function fig = crossplot_daily(obs_V, pred_V)
+function fig = crossplot_daily(obs_V, pred_V, varargin)
 % Crossplot of synthetic V/I versus predictive V/I.
 % 
 % 
 % Parameters
 % ----------
-% synth_V : row vector or column vector
+% synth_V : double, row vector or column vector
 %     Synthetic delta V/I.
-% pred_V : row vector or column vector
-%     Predict delta V/I. 
+% pred_V : double, row vector or column vector
+%     Predictive delta V/I.
 %     We can get this parameter by forward simulation,
 %     where the input is the resistivity predicted by NN.
-%
+% varargin : cell
+%     Keyword arguments.
+% 
 % Returns
 % -------
-% fig : figure object
+% fig : figure graphics object
 %     We can post-process this figure before saving.
 %
 % References

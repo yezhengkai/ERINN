@@ -1,4 +1,13 @@
 function save_synth_predV(varargin)
+% Save synthetic predictive \DeltaV/I to hdf5.
+%
+% Parameters
+% ----------
+% varargin : cell
+%
+% Returns
+% -------
+% None
 
 % parse input arguments
 p = inputParser;

@@ -1,9 +1,9 @@
 function data = load_synth_data(varargin)
-% Load synthetic data
+% Load synthetic data.
 %
 % Parameters
 % ----------
-%
+% varargin : cell
 %
 % Returns
 % -------
