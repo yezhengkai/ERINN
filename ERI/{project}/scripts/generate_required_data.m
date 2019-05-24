@@ -38,10 +38,12 @@ if generate_config_json
 end
 
 %% generate required data
+% generate synthetic data
 for i = 1:num_h5
     gen_data(config_json);
 end
 
+% generate global parameters
 gen_glob_para_h5(h5, config_json);
 
 %% remove search path

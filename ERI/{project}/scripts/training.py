@@ -26,10 +26,10 @@ tf.keras.backend.set_session(session)
 npz_dir = os.path.join('..', 'data', 'processed_data', 'training')
 weights_dir = os.path.join('..', 'models', 'weights')
 tb_log_dir = os.path.join('..', 'models', 'logs')
-gpus = 2
-epochs = 250
+gpus = 2  # use 2 gpu
+epochs = 250  # epoch represents the number of times all samples have been viewed
 
-npz_list = get_npz_list(npz_dir)
+npz_list = get_npz_list(npz_dir)  # training with all samples
 input_shape = np.load(npz_list[0])['Inputs'].shape  # use tuple
 output_shape = (np.load(npz_list[0])['Targets'].size, )  # use tuple
 
@@ -48,7 +48,7 @@ tensorboard = keras.callbacks.TensorBoard(log_dir=tb_log_dir, histogram_freq=0,
 callbacks = [tensorboard]
 
 
-# create model
+# create model (Model modified from original Alexnet)
 def standard_unit(input_tensor, stage, num_filter, kernel_size=3, strides=(1, 1)):
     dropout_rate = 0.2
     act = LeakyReLU()

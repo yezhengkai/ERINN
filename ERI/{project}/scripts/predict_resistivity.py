@@ -7,11 +7,10 @@ from tensorflow.python.keras.layers import LeakyReLU
 from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.optimizers import Adam
 from tensorflow.python.keras.regularizers import l2
-from tensorflow.python.keras.utils import multi_gpu_model
 
 # from erinn.python.generator import PredictGenerator
 from erinn.python.metrics import r_squared
-from erinn.python.utils.io_utils import get_npz_list, save_synth_data
+from erinn.python.utils.io_utils import get_npz_list, save_synth_data, save_daily_data
 
 
 # Allowing GPU memory growth
@@ -26,13 +25,15 @@ glob_para_h5 = os.path.join('..', 'config', 'glob_para.h5')
 npz_dir = os.path.join('..', 'data', 'processed_data', 'testing')
 weights_dir = os.path.join('..', 'models', 'weights')
 dest1_h5 = os.path.join('..', 'models', 'predictions', 'testing.h5')
+dest2_h5 = os.path.join('..', 'models', 'predictions', 'daily.h5')
+urf_dir = os.path.join('..', 'data', 'daily_data')
 
 npz_list = get_npz_list(npz_dir)
 input_shape = np.load(npz_list[0])['Inputs'].shape  # use tuple
 output_shape = (np.load(npz_list[0])['Targets'].size, )  # use tuple
 
 
-# create model
+# create model (Model modified from original Alexnet)
 def standard_unit(input_tensor, stage, num_filter, kernel_size=3, strides=(1, 1)):
     dropout_rate = 0.2
     act = LeakyReLU()
@@ -72,4 +73,6 @@ with tf.device('/cpu:0'):
 model.compile(optimizer=Adam(lr=1e-4), loss='mean_squared_error', metrics=[r_squared])
 model.load_weights(os.path.join(weights_dir, 'trained_weight.h5'))
 
-save_synth_data(model1, glob_para_h5, npz_list, dest_h5=dest1_h5)
+# predict and save
+save_synth_data(model, glob_para_h5, npz_list, dest_h5=dest1_h5)
+save_daily_data(model, glob_para_h5, urf_dir, dest_h5=dest2_h5)

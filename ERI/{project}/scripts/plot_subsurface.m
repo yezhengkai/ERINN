@@ -30,8 +30,8 @@ for i = 1:size(synth_data.synth_V, 1)
 end
 
 %% synthetic data: subsurface structureplot
-nx = para.nx;
-nz = para.nz;
+nx = h5read(testing_h5, '/glob_para/nx');
+nz = h5read(testing_h5, '/glob_para/nz');
 coord = h5read(testing_h5, '/glob_para/coord_in_model');
 xz = coord(:, [2, 4]) + [nx/2, 0];
 min_log_rho = 0;
@@ -68,6 +68,32 @@ fig = heatmap_synth(synth_data_testing.synth_log_rho, ...
 img_name = fullfile(out_testing_dir, 'heatmap.png');
 print(fig, img_name, '-dpng', '-r300');
 close(fig);
+
+%% daily data: crossplot(obs_V v.s. pred_V)
+for i = 1:size(daily_data.obs_V, 1)
+    fig = crossplot_daily(daily_data.obs_V(i, :), ...
+                          daily_data.pred_V(i, :));
+    fig.CurrentAxes.Title.String = daily_data.date{i};
+    img_name = fullfile(out_daily_dir,...
+                        strcat('crossplot_', daily_data.date{i},'.png'));
+    print(fig, img_name, '-dpng', '-r300');
+    close(fig);
+end
+
+%% daily data: subsurface structureplot
+for i = 1:size(daily_data.obs_V, 1)
+    pred_log_rho = reshape(daily_data.pred_log_rho(i, :), nx, nz)';
+    fig = structureplot_daily(pred_log_rho, nx, nz, xz);
+    fig.CurrentAxes.Title.String = daily_data.date{i};
+    cbar = fig.Children.findobj('-regexp', 'Tag', 'cbar');
+    caxis(log_rho_range);
+    cbar.Ticks = ticks;
+    cbar.TickLabels = ticklabels;
+    img_name = fullfile(out_daily_dir,...
+                        strcat('structureplot_', daily_data.date{i},'.png'));
+    print(fig, img_name, '-dpng', '-r300');
+    close(fig);
+end
 
 %% remove search path
 rmpath(genpath(toolbox_dir));

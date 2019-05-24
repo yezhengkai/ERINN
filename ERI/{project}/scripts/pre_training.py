@@ -29,6 +29,7 @@ gpus = 2
 epochs = 1
 
 npz_list = get_npz_list(npz_dir)
+npz_list = npz_list[0:int(len(npz_list) * 0.4)]  # pre-training with small samples
 input_shape = np.load(npz_list[0])['Inputs'].shape  # use tuple
 output_shape = (np.load(npz_list[0])['Targets'].size, )  # use tuple
 
@@ -47,7 +48,7 @@ tensorboard = keras.callbacks.TensorBoard(log_dir=tb_log_dir, histogram_freq=0,
 callbacks = [tensorboard]
 
 
-# create model
+# create model (Model modified from original Alexnet)
 def standard_unit(input_tensor, stage, num_filter, kernel_size=3, strides=(1, 1)):
     dropout_rate = 0.2
     act = LeakyReLU()
