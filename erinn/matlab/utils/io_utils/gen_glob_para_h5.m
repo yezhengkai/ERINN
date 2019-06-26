@@ -13,7 +13,7 @@ end
 % parse json
 para = jsondecode(fileread(config_json));
 
-urf = para.simulate.geomatry_urf;
+urf = para.simulate.geomtry_urf;
 [Tx_id, Rx_id, RxP2_id, coord, ~] = read_urf(urf);
 [srcloc, dx, dz, recloc, srcnum] = prepare_for_get_2_5Dpara(para);
 nx = para.nx;
