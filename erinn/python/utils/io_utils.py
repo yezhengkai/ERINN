@@ -435,7 +435,7 @@ def save_synth_data(model, src_h5, npz_list, data_generator=None, dest_h5=None, 
     num_samples = len(npz_list)
     num_features = tmp['Inputs'].size
     num_output_elem = tmp['Targets'].size
-    input_shape = model.layers[0].output_shape[1:]
+    input_shape = model.layers[1].input_shape[1:]
     synth_V = np.empty((num_samples, num_features))
     synth_log_rho = np.empty((num_samples, num_output_elem))
     pred_log_rho = np.empty((num_samples, num_output_elem))
@@ -561,7 +561,7 @@ def save_daily_data(model, src_h5, urf_dir, dest_h5=None, preprocess=False,
                  0:-1]) for dlist in os.listdir(urf_dir) if dlist.endswith(".urf"))
     # filter dates in datetime range and return an iterable filter instance
     it = filter(lambda t: datetime_in_range(t, start, end), dlist)
-    input_shape = model.layers[0].output_shape[1:]
+    input_shape = model.layers[1].input_shape[1:]
 
     for receive_date in it:
 
