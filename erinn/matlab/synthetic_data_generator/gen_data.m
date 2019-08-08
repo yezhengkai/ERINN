@@ -38,6 +38,8 @@ switch para.generator.core
         Targets = rand_layer(para);
     case 'rand_column'
         Targets = rand_column(para);
+    case 'rand_field'
+        Targets = rand_field(para);
 end
 
 %% forward simulation
