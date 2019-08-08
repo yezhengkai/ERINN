@@ -21,18 +21,23 @@ tf.keras.backend.set_session(session)
 
 
 # setting
+# if you have daily data (urf), you can uncomment lines 29, 30, 83.
 glob_para_h5 = os.path.join('..', 'config', 'glob_para.h5')
 npz_dir = os.path.join('..', 'data', 'processed_data', 'testing')
 weights_dir = os.path.join('..', 'models', 'weights')
 dest1_h5 = os.path.join('..', 'models', 'predictions', 'testing.h5')
-dest2_h5 = os.path.join('..', 'models', 'predictions', 'daily.h5')
-urf_dir = os.path.join('..', 'data', 'daily_data')
+# dest2_h5 = os.path.join('..', 'models', 'predictions', 'daily.h5')
+# urf_dir = os.path.join('..', 'data', 'daily_data')
 
 npz_list = get_npz_list(npz_dir)
 input_shape = np.load(npz_list[0])['Inputs'].shape  # use tuple
 output_shape = (np.load(npz_list[0])['Targets'].size, )  # use tuple
 
 
+# My project uses FCN, but data should be manipulated (cropping or padding) in the hidden layer
+# to fit the input and output shapes. Therefore, we have established the following networks
+# that are suitable for any situation and do not need to be modified. But the final performance may be worse.
+# In addition, you can set up your own network by replacing the following sections.
 # create model (Model modified from original Alexnet)
 def standard_unit(input_tensor, stage, num_filter, kernel_size=3, strides=(1, 1)):
     dropout_rate = 0.2
@@ -75,4 +80,4 @@ model.load_weights(os.path.join(weights_dir, 'trained_weight.h5'))
 
 # predict and save
 save_synth_data(model, glob_para_h5, npz_list, dest_h5=dest1_h5)
-save_daily_data(model, glob_para_h5, urf_dir, dest_h5=dest2_h5)
+# save_daily_data(model, glob_para_h5, urf_dir, dest_h5=dest2_h5)
