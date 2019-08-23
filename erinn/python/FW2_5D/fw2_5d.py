@@ -18,89 +18,79 @@ def get_2_5Dpara(srcloc, dx, dz, BC_cor, num, recloc, srcnum):
 
     nx = np.max(dx.shape)
     nz = np.max(dz.shape)
+    # If there are empty lists or tuples, convert them to empty ndarray
+    BC_cor = np.array(BC_cor, dtype=np.float64)
+    recloc = np.array(recloc, dtype=np.float64)
+    srcnum = np.array(srcnum, dtype=np.float64)
 
     # Assign grid information
-    # create a class Para and alias as para
-    para = namedtuple('Para', ['dx', 'dz', 'nx', 'nz', 'D', 'G', 'k', 'g', 'b', 'Q', 'srcnum'])
-    # construct an instance
-    Para = para._make([None] * len(para._fields))
-    Para = Para._replace(dx=dx)
-    Para = Para._replace(dz=dz)
-    Para = Para._replace(nx=nx)
-    Para = Para._replace(nz=nz)
-
     # Create Divergence and Gradient operators once so we don't need to calculate them again
-    # D, _, _ = div2d(dx, dz)
-    Para = Para._replace(D=div2d(dx, dz)[0])
-    # G, _, _ = grad2d(dx, dz)
-    Para = Para._replace(G=grad2d(dx, dz)[0])
+    # Assign source numbers (empty vector if no receivers were supplied)
+    Para = {'dx': dx, 'dz': dz, 'nx': nx, 'nz': nz, 'D': div2d(dx, dz)[0], 'G': grad2d(dx, dz)[0], 'srcnum': srcnum}
 
     # optimize k and g for the given survey geometry.
     if num == 0:
         print('Using default Fourier Coeffs')
-        Para = Para._replace(k=np.array([0.0217102, 0.2161121, 1.0608400, 5.0765870]).reshape(-1, 1))
-        Para = Para._replace(g=np.array([0.0463660, 0.2365931, 1.0382080, 5.3648010]).reshape(-1, 1))
+        Para['k'] = np.array([0.0217102, 0.2161121, 1.0608400, 5.0765870]).reshape(-1, 1)
+        Para['g'] = np.array([0.0463660, 0.2365931, 1.0382080, 5.3648010]).reshape(-1, 1)
     else:
         print('Optimizing for Fourier Coeffs')
         k, g, obj, err = get_k_g_opt(dx, dz, srcloc, num)
         # Assign the k and g values to Para
-        Para = Para._replace(k=k)
-        Para = Para._replace(g=g)
+        Para['k'] = k
+        Para['g'] = g
 
     ## Create the right hand side of the forward modeling equation
     # See if we are applying the BC correction
     if not BC_cor.size:
         # no correction, so we interpolate the src locations onto the grid
         print('Interpolating source locations')
-        Para = Para._replace(b=calcRHS_2_5(dx, dz, srcloc))
+        Para['b'] = calcRHS_2_5(dx, dz, srcloc)
     else:
         # Calculate the RHS with a BC correction applied
         print('Applying BC/Singularity correction')
-        Para = Para._replace(b=boundary_correction_2_5(dx, dz, BC_cor, srcloc, Para.k, Para.g))
+        Para['b'] = boundary_correction_2_5(dx, dz, BC_cor, srcloc, Para['k'], Para['g'])
 
     ## See if we are creating a receiver term
     try:
         # Get the Q matrix for the observation points
-        Para = Para._replace(Q=interpmat_N2_5(dx, dz, recloc[:, 0], recloc[:, 1]))
+        Para['Q'] = interpmat_N2_5(dx, dz, recloc[:, 0], recloc[:, 1])
         # See if it is a dipole survey - if not the other electrode is assumed to be at infinity
         try:
-            Para = Para._replace(Q=Para.Q - interpmat_N2_5(dx, dz, recloc[:, 2], recloc[:, 3]))
+            Para['Q'] = Para['Q'] - interpmat_N2_5(dx, dz, recloc[:, 2], recloc[:, 3])
         except:
             pass
     except:
-        Para = Para._replace(Q=np.array([], np.float64))
-
-    ## Assign source numbers (empty vector if no receivers were supplied)
-    Para = Para._replace(srcnum=srcnum)
+        Para['Q'] = np.array([], np.float64)
 
     return Para
 
 
 def dcfw2_5D(s, Para):
 
-    dx = Para.dx
-    dz = Para.dz
+    dx = Para['dx']
+    dz = Para['dz']
     # make the sigma matrix
     R = massf2d(1 / s, dx, dz)
     S = sparse.spdiags(1 / np.diag(R.toarray()), 0, R.shape[0], R.shape[1])
     # put it all together to create operator matrix
-    A = -Para.D @ S @ Para.G
+    A = -Para['D'] @ S @ Para['G']
 
     # initialize the solution vector
-    U = np.zeros(Para.b.shape)
+    U = np.zeros(Para['b'].shape)
 
     # Enter a loop to solve the forward problem for all fourier coeffs
-    for i in range(np.max(Para.k.shape)):
+    for i in range(np.max(Para['k'].shape)):
         # Now we solve the forward problem
         # modify the operator based on the fourier transform
-        L = A + (Para.k[i, 0] ** 2) * sparse.spdiags(s.flatten(order='F'), 0, A.shape[0], A.shape[1])
+        L = A + (Para['k'][i, 0] ** 2) * sparse.spdiags(s.flatten(order='F'), 0, A.shape[0], A.shape[1])
         # now integrate for U
-        U = U + (Para.g[i, 0] * spsl.spsolve(L, 0.5 * Para.b)).toarray()
+        U = U + (Para['g'][i, 0] * spsl.spsolve(L, 0.5 * Para['b'])).toarray()
     print('Finished forward calc')
 
     # see if the Q is around and pick data otherwise return an empty vector
     try:
-        dobs = Qu(Para.Q, U, Para.srcnum)
+        dobs = Qu(Para['Q'], U, Para['srcnum'])
     except:
         dobs = np.array([], dtype=np.float64)
 
@@ -812,25 +802,24 @@ if __name__ == '__main__':
     s = s['s']
     recloc = recloc['recloc']
     srcnum = srcnum['srcnum']
-    empty_array = np.array([], dtype=np.float64)
 
     ## First we run the code for no receiver locations, no BC correction and default fourier parameters
     # Note you can save Para, and then you need not recreate it for different conductivity fields.
-    Para1 = get_2_5Dpara(srcloc, dx, dz, empty_array, 0, empty_array, empty_array)
+    Para1 = get_2_5Dpara(srcloc, dx, dz, [], 0, [], [])
     dobs1, U1 = dcfw2_5D(s, Para1)
 
     # Check if the results of matlab and python are equal
-    print('Para1.dx is equal: ', np.array_equal(Para1.dx, solution1['Para1']['dx'][0, 0]))
-    print('Para1.dz is equal: ', np.array_equal(Para1.dz, solution1['Para1']['dz'][0, 0]))
-    print('Para1.D is equal: ', np.array_equal(Para1.D.toarray(), solution1['Para1']['D'][0, 0].toarray()))
-    print('Para1.G is equal: ', np.array_equal(Para1.G.toarray(), solution1['Para1']['G'][0, 0].toarray()))
-    print('Para1.k is equal: ', np.array_equal(Para1.k, solution1['Para1']['k'][0, 0].T))
-    print('Para1.g is equal: ', np.array_equal(Para1.g, solution1['Para1']['g'][0, 0].T))
-    print('Para1.b is equal: ', np.array_equal(Para1.b.toarray(), solution1['Para1']['b'][0, 0].toarray()))
-    if not Para1.srcnum.size:
+    print('Para1.dx is equal: ', np.array_equal(Para1['dx'], solution1['Para1']['dx'][0, 0]))
+    print('Para1.dz is equal: ', np.array_equal(Para1['dz'], solution1['Para1']['dz'][0, 0]))
+    print('Para1.D is equal: ', np.array_equal(Para1['D'].toarray(), solution1['Para1']['D'][0, 0].toarray()))
+    print('Para1.G is equal: ', np.array_equal(Para1['G'].toarray(), solution1['Para1']['G'][0, 0].toarray()))
+    print('Para1.k is equal: ', np.array_equal(Para1['k'], solution1['Para1']['k'][0, 0].T))
+    print('Para1.g is equal: ', np.array_equal(Para1['g'], solution1['Para1']['g'][0, 0].T))
+    print('Para1.b is equal: ', np.array_equal(Para1['b'].toarray(), solution1['Para1']['b'][0, 0].toarray()))
+    if not Para1['srcnum'].size:
         print('Para1.srcnum is empty: ', True if not solution1['Para1']['srcnum'][0, 0].size else False)
     else:
-        print('Para1.srcnum is equal: ', np.array_equal(Para1.srcnum, solution1['Para1']['srcnum'][0, 0]))
+        print('Para1.srcnum is equal: ', np.array_equal(Para1['srcnum'], solution1['Para1']['srcnum'][0, 0]))
     if not dobs1.size:
         print('dobs1 is empty: ', True if not solution1['dobs1'].size else False)
     else:
@@ -841,24 +830,24 @@ if __name__ == '__main__':
 
 
     ## Add Fourier parameters
-    Para2 = get_2_5Dpara(srcloc, dx, dz, empty_array, 4, empty_array, empty_array)
+    Para2 = get_2_5Dpara(srcloc, dx, dz, [], 4, [], [])
     dobs2, U2 = dcfw2_5D(s, Para2)
 
     # Check if the results of matlab and python are equal
-    print('Para2.dx is equal: ', np.array_equal(Para2.dx, solution2['Para2']['dx'][0, 0]))
-    print('Para2.dz is equal: ', np.array_equal(Para2.dz, solution2['Para2']['dz'][0, 0]))
-    print('Para2.D is equal: ', np.array_equal(Para2.D.toarray(), solution2['Para2']['D'][0, 0].toarray()))
-    print('Para2.G is equal: ', np.array_equal(Para2.G.toarray(), solution2['Para2']['G'][0, 0].toarray()))
-    print('Para2.k is equal: ', np.array_equal(Para2.k, solution2['Para2']['k'][0, 0]))
-    print('Para2.k is close: ', np.allclose(Para2.k, solution2['Para2']['k'][0, 0]))
-    print('Para2.g is equal: ', np.array_equal(Para2.g, solution2['Para2']['g'][0, 0]))
-    print('Para2.g is close: ', np.allclose(Para2.g, solution2['Para2']['g'][0, 0]))
-    print('Para2.b is equal: ', np.array_equal(Para2.b.toarray(), solution2['Para2']['b'][0, 0].toarray()))
-    print('Para2.b is close: ', np.allclose(Para2.b.toarray(), solution2['Para2']['b'][0, 0].toarray()))
-    if not Para2.srcnum.size:
+    print('Para2.dx is equal: ', np.array_equal(Para2['dx'], solution2['Para2']['dx'][0, 0]))
+    print('Para2.dz is equal: ', np.array_equal(Para2['dz'], solution2['Para2']['dz'][0, 0]))
+    print('Para2.D is equal: ', np.array_equal(Para2['D'].toarray(), solution2['Para2']['D'][0, 0].toarray()))
+    print('Para2.G is equal: ', np.array_equal(Para2['G'].toarray(), solution2['Para2']['G'][0, 0].toarray()))
+    print('Para2.k is equal: ', np.array_equal(Para2['k'], solution2['Para2']['k'][0, 0]))
+    print('Para2.k is close: ', np.allclose(Para2['k'], solution2['Para2']['k'][0, 0]))
+    print('Para2.g is equal: ', np.array_equal(Para2['g'], solution2['Para2']['g'][0, 0]))
+    print('Para2.g is close: ', np.allclose(Para2['g'], solution2['Para2']['g'][0, 0]))
+    print('Para2.b is equal: ', np.array_equal(Para2['b'].toarray(), solution2['Para2']['b'][0, 0].toarray()))
+    print('Para2.b is close: ', np.allclose(Para2['b'].toarray(), solution2['Para2']['b'][0, 0].toarray()))
+    if not Para2['srcnum'].size:
         print('Para2.srcnum is empty: ', True if not solution2['Para2']['srcnum'][0, 0].size else False)
     else:
-        print('Para2.srcnum is equal: ', np.array_equal(Para2.srcnum, solution2['Para2']['srcnum'][0, 0]))
+        print('Para2.srcnum is equal: ', np.array_equal(Para2['srcnum'], solution2['Para2']['srcnum'][0, 0]))
     if not dobs2.size:
         print('dobs2 is empty: ', True if not solution2['dobs2'].size else False)
     else:
@@ -868,24 +857,24 @@ if __name__ == '__main__':
     print('U2 is close: ', np.allclose(U2, solution2['U2']))
 
     ## Add the BC correction
-    Para3 = get_2_5Dpara(srcloc, dx, dz, s, 4, empty_array, empty_array)
+    Para3 = get_2_5Dpara(srcloc, dx, dz, s, 4, [], [])
     dobs3, U3 = dcfw2_5D(s, Para3)
 
     # Check if the results of matlab and python are equal
-    print('Para3.dx is equal: ', np.array_equal(Para3.dx, solution3['Para3']['dx'][0, 0]))
-    print('Para3.dz is equal: ', np.array_equal(Para3.dz, solution3['Para3']['dz'][0, 0]))
-    print('Para3.D is equal: ', np.array_equal(Para3.D.toarray(), solution3['Para3']['D'][0, 0].toarray()))
-    print('Para3.G is equal: ', np.array_equal(Para3.G.toarray(), solution3['Para3']['G'][0, 0].toarray()))
-    print('Para3.k is equal: ', np.array_equal(Para3.k, solution3['Para3']['k'][0, 0]))
-    print('Para3.k is close: ', np.allclose(Para3.k, solution3['Para3']['k'][0, 0]))
-    print('Para3.g is equal: ', np.array_equal(Para3.g, solution3['Para3']['g'][0, 0]))
-    print('Para3.g is close: ', np.allclose(Para3.g, solution3['Para3']['g'][0, 0]))
-    print('Para3.b is equal: ', np.array_equal(Para3.b.toarray(), solution3['Para3']['b'][0, 0]))
-    print('Para3.b is close: ', np.allclose(Para3.b.toarray(), solution3['Para3']['b'][0, 0]))
-    if not Para3.srcnum.size:
+    print('Para3.dx is equal: ', np.array_equal(Para3['dx'], solution3['Para3']['dx'][0, 0]))
+    print('Para3.dz is equal: ', np.array_equal(Para3['dz'], solution3['Para3']['dz'][0, 0]))
+    print('Para3.D is equal: ', np.array_equal(Para3['D'].toarray(), solution3['Para3']['D'][0, 0].toarray()))
+    print('Para3.G is equal: ', np.array_equal(Para3['G'].toarray(), solution3['Para3']['G'][0, 0].toarray()))
+    print('Para3.k is equal: ', np.array_equal(Para3['k'], solution3['Para3']['k'][0, 0]))
+    print('Para3.k is close: ', np.allclose(Para3['k'], solution3['Para3']['k'][0, 0]))
+    print('Para3.g is equal: ', np.array_equal(Para3['g'], solution3['Para3']['g'][0, 0]))
+    print('Para3.g is close: ', np.allclose(Para3['g'], solution3['Para3']['g'][0, 0]))
+    print('Para3.b is equal: ', np.array_equal(Para3['b'].toarray(), solution3['Para3']['b'][0, 0]))
+    print('Para3.b is close: ', np.allclose(Para3['b'].toarray(), solution3['Para3']['b'][0, 0]))
+    if not Para3['srcnum'].size:
         print('Para3.srcnum is empty: ', True if not solution3['Para3']['srcnum'][0, 0].size else False)
     else:
-        print('Para3.srcnum is equal: ', np.array_equal(Para3.srcnum, solution3['Para3']['srcnum'][0, 0]))
+        print('Para3.srcnum is equal: ', np.array_equal(Para3['srcnum'], solution3['Para3']['srcnum'][0, 0]))
     if not dobs3.size:
         print('dobs3 is empty: ', True if not solution3['dobs3'].size else False)
     else:
@@ -895,25 +884,25 @@ if __name__ == '__main__':
     print('U3 is close: ', np.allclose(U3, solution3['U3']))
 
     ## Add the receiver locations
-    Para4 = get_2_5Dpara(srcloc, dx, dz, empty_array, 4, recloc, srcnum - 1)  # The index in python starts from 0
+    Para4 = get_2_5Dpara(srcloc, dx, dz, [], 4, recloc, srcnum - 1)  # The index in python starts from 0
     dobs4, U4 = dcfw2_5D(s, Para4)
 
     # Check if the results of matlab and python are equal
-    print('Para4.dx is equal: ', np.array_equal(Para4.dx, solution4['Para4']['dx'][0, 0]))
-    print('Para4.dz is equal: ', np.array_equal(Para4.dz, solution4['Para4']['dz'][0, 0]))
-    print('Para4.D is equal: ', np.array_equal(Para4.D.toarray(), solution4['Para4']['D'][0, 0].toarray()))
-    print('Para4.G is equal: ', np.array_equal(Para4.G.toarray(), solution4['Para4']['G'][0, 0].toarray()))
-    print('Para4.k is equal: ', np.array_equal(Para4.k, solution4['Para4']['k'][0, 0]))
-    print('Para4.k is close: ', np.allclose(Para4.k, solution4['Para4']['k'][0, 0]))
-    print('Para4.g is equal: ', np.array_equal(Para4.g, solution4['Para4']['g'][0, 0]))
-    print('Para4.g is close: ', np.allclose(Para4.g, solution4['Para4']['g'][0, 0]))
-    print('Para4.b is equal: ', np.array_equal(Para4.b.toarray(), solution4['Para4']['b'][0, 0].toarray()))
-    print('Para4.b is close: ', np.allclose(Para4.b.toarray(), solution4['Para4']['b'][0, 0].toarray()))
-    print('Para4.Q is equal: ', np.array_equal(Para4.Q.toarray(), solution4['Para4']['Q'][0, 0].toarray()))
-    if not Para4.srcnum.size:
+    print('Para4.dx is equal: ', np.array_equal(Para4['dx'], solution4['Para4']['dx'][0, 0]))
+    print('Para4.dz is equal: ', np.array_equal(Para4['dz'], solution4['Para4']['dz'][0, 0]))
+    print('Para4.D is equal: ', np.array_equal(Para4['D'].toarray(), solution4['Para4']['D'][0, 0].toarray()))
+    print('Para4.G is equal: ', np.array_equal(Para4['G'].toarray(), solution4['Para4']['G'][0, 0].toarray()))
+    print('Para4.k is equal: ', np.array_equal(Para4['k'], solution4['Para4']['k'][0, 0]))
+    print('Para4.k is close: ', np.allclose(Para4['k'], solution4['Para4']['k'][0, 0]))
+    print('Para4.g is equal: ', np.array_equal(Para4['g'], solution4['Para4']['g'][0, 0]))
+    print('Para4.g is close: ', np.allclose(Para4['g'], solution4['Para4']['g'][0, 0]))
+    print('Para4.b is equal: ', np.array_equal(Para4['b'].toarray(), solution4['Para4']['b'][0, 0].toarray()))
+    print('Para4.b is close: ', np.allclose(Para4['b'].toarray(), solution4['Para4']['b'][0, 0].toarray()))
+    print('Para4.Q is equal: ', np.array_equal(Para4['Q'].toarray(), solution4['Para4']['Q'][0, 0].toarray()))
+    if not Para4['srcnum'].size:
         print('Para4.srcnum is empty: ', True if not solution4['Para4']['srcnum'][0, 0].size else False)
     else:
-        print('Para4.srcnum is equal: ', np.array_equal(Para4.srcnum, solution4['Para4']['srcnum'][0, 0] - 1))
+        print('Para4.srcnum is equal: ', np.array_equal(Para4['srcnum'], solution4['Para4']['srcnum'][0, 0] - 1))
     if not dobs4.size:
         print('dobs4 is empty: ', True if not solution4['dobs4'].size else False)
     else:
