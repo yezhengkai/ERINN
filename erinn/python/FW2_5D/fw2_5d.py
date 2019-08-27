@@ -2,11 +2,12 @@
 from __future__ import division, absolute_import, print_function
 
 import warnings
+
 import numpy as np
+import scipy.sparse.linalg as spsl
 from scipy import sparse
 from scipy.special import kv
-import scipy.sparse.linalg as spsl
-from collections import namedtuple
+
 
 # MATLAB-NumPy Equivalents
 # https://www.numpy.org/devdocs/user/numpy-for-matlab-users.html
@@ -783,18 +784,21 @@ def shiftdim(x, n=None, nargout=2):
 
 
 if __name__ == '__main__':
-    import scipy.io as sio
-    # from erinn.python.FW2_5D.fw_25d import get_2_5Dpara, dcfw2_5D
 
-    srcloc = sio.loadmat('srcloc.mat')
-    dxdz = sio.loadmat('dxdz.mat')
-    s = sio.loadmat('s.mat')
-    recloc = sio.loadmat('recloc.mat')
-    srcnum = sio.loadmat('srcnum.mat')
-    solution1 = sio.loadmat('solution1.mat')
-    solution2 = sio.loadmat('solution2.mat')
-    solution3 = sio.loadmat('solution3.mat')
-    solution4 = sio.loadmat('solution4.mat')
+    import os
+    import scipy.io as sio
+
+    matfile_path = './solution_from_matlab'
+
+    srcloc = sio.loadmat(os.path.join(matfile_path, 'srcloc.mat'))
+    dxdz = sio.loadmat(os.path.join(matfile_path, 'dxdz.mat'))
+    s = sio.loadmat(os.path.join(matfile_path, 's.mat'))
+    recloc = sio.loadmat(os.path.join(matfile_path, 'recloc.mat'))
+    srcnum = sio.loadmat(os.path.join(matfile_path, 'srcnum.mat'))
+    solution1 = sio.loadmat(os.path.join(matfile_path, 'solution1.mat'))
+    solution2 = sio.loadmat(os.path.join(matfile_path, 'solution2.mat'))
+    solution3 = sio.loadmat(os.path.join(matfile_path, 'solution3.mat'))
+    solution4 = sio.loadmat(os.path.join(matfile_path, 'solution4.mat'))
 
     srcloc = srcloc['srcloc']
     dx = dxdz['dx']
@@ -803,10 +807,15 @@ if __name__ == '__main__':
     recloc = recloc['recloc']
     srcnum = srcnum['srcnum']
 
-    ## First we run the code for no receiver locations, no BC correction and default fourier parameters
+    # First we run the code for no receiver locations, no BC correction and default fourier parameters
     # Note you can save Para, and then you need not recreate it for different conductivity fields.
     Para1 = get_2_5Dpara(srcloc, dx, dz, [], 0, [], [])
     dobs1, U1 = dcfw2_5D(s, Para1)
+    # note U1 will be a matrix dimensions [dx.size * dz.size, number of source terms]
+    # Because dobs1 and U1 are the same as the matlab version, the index order is fortran-style.
+    # To visualize the potential field for any source term u = U1[:, i].reshape(np.max(dz.shape), np.max(dx.shape))
+    # u is now a 2D matrix. To plot in map view (ie. x-axis is horizontal) use
+    # plt.imshow(u)
 
     # Check if the results of matlab and python are equal
     print('Para1.dx is equal: ', np.array_equal(Para1['dx'], solution1['Para1']['dx'][0, 0]))
@@ -828,8 +837,7 @@ if __name__ == '__main__':
     print('U1 is equal: ', np.array_equal(U1, solution1['U1']))
     print('U1 is close: ', np.allclose(U1, solution1['U1']))
 
-
-    ## Add Fourier parameters
+    # Add Fourier parameters
     Para2 = get_2_5Dpara(srcloc, dx, dz, [], 4, [], [])
     dobs2, U2 = dcfw2_5D(s, Para2)
 
@@ -856,7 +864,7 @@ if __name__ == '__main__':
     print('U2 is equal: ', np.array_equal(U2, solution2['U2']))
     print('U2 is close: ', np.allclose(U2, solution2['U2']))
 
-    ## Add the BC correction
+    # Add the BC correction
     Para3 = get_2_5Dpara(srcloc, dx, dz, s, 4, [], [])
     dobs3, U3 = dcfw2_5D(s, Para3)
 
@@ -883,7 +891,7 @@ if __name__ == '__main__':
     print('U3 is equal: ', np.array_equal(U3, solution3['U3']))
     print('U3 is close: ', np.allclose(U3, solution3['U3']))
 
-    ## Add the receiver locations
+    # Add the receiver locations
     Para4 = get_2_5Dpara(srcloc, dx, dz, [], 4, recloc, srcnum - 1)  # The index in python starts from 0
     dobs4, U4 = dcfw2_5D(s, Para4)
 

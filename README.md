@@ -1,6 +1,14 @@
 # ERINN
 Electrical resistivity imaging based on deep learning.
 
+ERINN contains convenient functions for using deep learning to solve ERI problems.
+The result can then provide a quick view of the resistivity and an useable initial model in the inversion routine.
+
+Here are the specific steps:
+1. Generate data using the matlab program 'FW2_5D'.
+2. Preprocess the data and split it into training/testing.
+3. Train the neural network.
+4. Verify the quality of the prediction with some figures and metrics.
 
 ## Requirement
 - matlab >= 2016b
@@ -76,6 +84,7 @@ The following are definitions of the parameters in [config.json](ERI/{project}/c
 - block_z_max:  
   Maximum length of block in the x direction.
 ---
-Since the package is under construction, many files are old versions.
+Since the package is under construction, many files are old versions.  
 Please star us for upcoming functionality.
 
+Note that we will discard the matlab part and rewrite the entire package in python.
