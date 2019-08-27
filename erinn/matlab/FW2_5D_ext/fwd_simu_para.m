@@ -42,7 +42,13 @@ else
     fprintf('Load Para mat file.\n');
     load(simu_para.Para_mat);
     % Check if Para is in accordance with current configuration
-    if size(Para.Q, 1) ~= size(srcnum, 1) || ...
+    if ~ismember('Q', fieldnames(Para))
+        fprintf('No Q matrix in `Para` structure, creating a new one.\n');
+        s = ones(para.nx, para.nz);
+        [Para] = get_2_5Dpara(srcloc, dx, dz, s, 4, recloc, srcnum);
+        save(simu_para.Para_mat, 'Para');
+        simu_para.Para = Para;
+    elseif size(Para.Q, 1) ~= size(srcnum, 1) || ...
             size(Para.Q, 2) ~= numel(dx) * numel(dz) || ...
             size(Para.b, 2) ~= size(srcloc, 1)
         fprintf('Size of Q matrix is wrong, creating a new one.\n');
