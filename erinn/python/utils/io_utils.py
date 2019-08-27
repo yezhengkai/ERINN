@@ -6,11 +6,12 @@ import gc
 import os
 import re
 import shutil
-from multiprocessing import Pool
 from functools import partial
+from multiprocessing import Pool
 
 import h5py
 import numpy as np
+from ruamel.yaml import YAML
 from tensorflow.python.keras.utils.vis_utils import plot_model
 
 # from .data_utils import search_hdf5
@@ -18,12 +19,26 @@ from .data_utils import prepare_for_get_2_5Dpara
 from .time_utils import datetime_in_range, datetime_range
 from ..preprocessing import log_transform
 
-# TODO: 確定讀取均用read或是load，寫入均用write或是load
-# TODO: 是否使用 from concurrent.futures import ProcessPoolExecutor as Pool
+
+def read_config_file(config_file: {str or dict}) -> dict:
+    if isinstance(config_file, dict):
+        config = config_file
+    elif isinstance(config_file, str) \
+            and os.path.exists(config_file) \
+            and os.path.isfile(config_file):
+        # use SafeLoader/SafeDumper. Loading of a document without resolving unknown tags.
+        yaml = YAML(typ='safe')
+        with open(config_file, 'r', encoding='utf-8') as f:
+            config = yaml.load(f)
+    else:
+        raise TypeError('Please input string or dictionary.')
+
+    return config
 
 
 def read_urf(urf_file):
-    """Read urf file
+    """
+    Read urf file
 
     Parameters
     ----------
@@ -32,29 +47,36 @@ def read_urf(urf_file):
 
     Returns
     -------
-    Tx_id : numpy.ndarray (1*t)
+    Tx_id : numpy.ndarray (1, t)
         Transmitter electrodes number.
-    Rx_id : numpy.ndarray (1*r)
+    Rx_id : numpy.ndarray (1, r)
         Receiver electrodes number.
-    RxP2_id : numpy.ndarray (1*r2)
+    RxP2_id : numpy.ndarray (1, r2)
         Common reference potential electrode number.
-    coord : numpy.ndarray (m*4)
-        The first column is the id of the electrode and the remaining columns are the 3-dimensional coordinates of the electrode.
+    coord : numpy.ndarray (m, 4)
+        The first column is the id of the electrode and
+        the remaining columns are the 3-dimensional coordinates of the electrode.
     data : numpy.ndarray (d, 7)
         Measurements of specific electrode dipole-dipole.
 
-    See also
-    --------
+    Notes
+    -----
     Please refer to the instruction manual of AGI EarthImager 2D.
+
+    References
+    ----------
+    .. [1] Advanced Geosciences, Inc. (2009).
+           Instruction Manual for EarthImager 2D, Version 2.4.0, Resistivity and IP Inversion Software.
     """
 
     with open(urf_file, encoding='utf-8') as f:
 
-        Tx_id = np.array([])
-        Rx_id = np.array([])
-        RxP2_id = np.array([])
-        coord = np.array([])
-        data = np.array([])
+        # predefine output variables
+        Tx_id = np.array([[np.nan]])
+        Rx_id = np.array([[np.nan]])
+        RxP2_id = np.array([[np.nan]])
+        coord = np.array([[np.nan]])
+        data = np.array([[np.nan]])
 
         for line in f:
             line = line.strip()
@@ -66,22 +88,17 @@ def read_urf(urf_file):
                 Rx_id = np.array(line.split(sep=','), dtype=np.int64, ndmin=2)
             elif line == 'RxP2':
                 line = f.readline().strip()
-                if line == '':
-                    RxP2_id = np.array([[np.nan]]).shape
-                else:
+                if line != '':
                     RxP2_id = np.array(line.split(sep=','),
                                        dtype=np.int64, ndmin=2)
             elif line.startswith(':Geometry'):
-                E_num = np.max(np.concatenate((Tx_id, Rx_id), axis=1))
-                line = [f.readline().strip().split(',') for i in range(E_num)]
+                num_line = int(np.nanmax(np.concatenate((Tx_id, Rx_id, RxP2_id), axis=1)))
+                line = [f.readline().strip().split(',') for _ in range(num_line)]
                 coord = np.array(line, dtype=np.float64, ndmin=2)
             elif line.startswith(':Measurements'):
-                Tx_n = (Tx_id.size * (Tx_id.size-1)) / 2
-                Rx_n = (Rx_id.size * (Rx_id.size-1)) / 2
-                point_num = Tx_n * Rx_n
-                line = [f.readline().strip().split(',')
-                        for i in range(int(point_num))]
+                line = list(map(lambda l: l.strip().split(','), f.readlines()))
                 data = np.array(line, dtype=np.float64, ndmin=2)
+
     return Tx_id, Rx_id, RxP2_id, coord, data
 
 
@@ -400,7 +417,8 @@ def gen_glob_para_h5(config_file, output_h5):
 
 # TODO: 要不要保留 fit_generator?
 def save_synth_data(model, src_h5, npz_list, data_generator=None, dest_h5=None, inverse_trans=False):
-    """Save synthetic data.
+    """
+    Save synthetic data.
 
     The synthetic data to be checked is saved to the hdf5 file, and then the crossplot of
     the synthetic V/I and predictive V/I can be used to check the robustness of the NN model.
@@ -511,7 +529,8 @@ def save_synth_data(model, src_h5, npz_list, data_generator=None, dest_h5=None, 
 
 def save_daily_data(model, src_h5, urf_dir, dest_h5=None, preprocess=False,
                     start=None, end=None, fmt='%Y%m%d'):
-    """Save daily data.
+    """
+    Save daily data.
 
     The synthetic data to be checked is saved to the hdf5 file, and then the crossplot of
     the synthetic V/I and predictive V/I can be used to check the robustness of the NN model.
@@ -655,7 +674,8 @@ def save_nn_model(model, output_dir='.', model_name='model.h5'):
 
 
 def save_used_data(src_h5, used_data, dest_h5=None):
-    """Save used data.
+    """
+    Save used data.
 
     Save used training and testing data to hdf5 file, this function can also save validation data.
 

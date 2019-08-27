@@ -1,33 +1,25 @@
 from __future__ import division, absolute_import, print_function
 
 import os
+import pickle
 from itertools import combinations
 
 import numpy as np
-from ruamel.yaml import YAML
 
-from ..utils.io_utils import read_urf
+from .fw2_5d import dcfw2_5D
 from .fw2_5d import get_2_5Dpara
+from .rand_synth_model import get_rand_model
+from ..utils.io_utils import read_config_file
+from ..utils.io_utils import read_urf
 
 
-def prepare_for_get_2_5d_para(config_file):
-
-    if isinstance(config_file, dict):
-        config = config_file
-    elif isinstance(config_file, str) \
-            and os.path.exists(config_file)\
-            and os.path.isfile(config_file):
-        # use SafeLoader/SafeDumper. Loading of a document without resolving unknown tags.
-        yaml = YAML(typ='safe')
-        with open(config_file, 'r', encoding='utf-8') as f:
-            config = yaml.load(f)
-    else:
-        raise TypeError('Please input string or dictionary.')
+def prepare_for_get_2_5d_para(config_file, return_urf=False):
+    config = read_config_file(config_file)
 
     urf = config['geometry_urf']
-    Tx_id, Rx_id, _, coord, data = read_urf(urf)
+    Tx_id, Rx_id, RxP2_id, coord, data = read_urf(urf)
     # Collect pairs id
-    if data.size == 0:
+    if np.all(np.isnan(data)):
         C_pair = [set(i) for i in combinations(Tx_id.flatten().tolist(), 2)]
         P_pair = [set(i) for i in combinations(Rx_id.flatten().tolist(), 2)]
         CP_pair = []
@@ -82,8 +74,8 @@ def prepare_for_get_2_5d_para(config_file):
     srcnum = np.reshape(srcnum, (-1, 1))  # matlab index starts from 1, python index starts from 0
 
     array_len = max(coord[:, 1]) - min(coord[:, 1])
-    srcloc[:, [0, 2]] = srcloc[:, [0, 2]] - array_len/2
-    recloc[:, [0, 2]] = recloc[:, [0, 2]] - array_len/2
+    srcloc[:, [0, 2]] = srcloc[:, [0, 2]] - array_len / 2
+    recloc[:, [0, 2]] = recloc[:, [0, 2]] - array_len / 2
     dx = np.ones((config['nx'], 1))
     dz = np.ones((config['nz'], 1))
 
@@ -92,3 +84,85 @@ def prepare_for_get_2_5d_para(config_file):
                 [Tx_id, Rx_id, RxP2_id, coord, data]]
     else:
         return srcloc, dx, dz, recloc, srcnum
+
+
+def get_forward_para(config_file):
+
+    config = read_config_file(config_file)
+    srcloc, dx, dz, recloc, srcnum = prepare_for_get_2_5d_para(config)
+    para_pkl = config['Para_pkl']
+    num_k_g = config['num_k_g']
+
+    if not os.path.isfile(para_pkl):
+        print('Create Para for FW2_5D.')
+        s = np.ones((config['nx'], config['nz']))
+        Para = get_2_5Dpara(srcloc, dx, dz, s, num_k_g, recloc, srcnum)
+        with open(para_pkl, 'wb') as f:
+            pickle.dump(Para, f)
+        config['Para'] = Para
+    else:
+        print('Load Para pickle file')
+        with open(para_pkl, 'rb') as f:
+            Para = pickle.load(f)
+        # Check if Para is in accordance with current configuration
+        if 'Q' not in Para:
+            print('No Q matrix in `Para` dictionary, creating a new one.')
+            s = np.ones((config['nx'], config['nz']))
+            Para = get_2_5Dpara(srcloc, dx, dz, s, num_k_g, recloc, srcnum)
+            with open(para_pkl, 'wb') as f:
+                pickle.dump(Para, f)
+            config['Para'] = Para
+        elif Para['Q'].shape[0] != srcnum.shape[0] \
+                or Para['Q'].shape[1] != dx.size * dz.size \
+                or Para['b'].shape[1] != srcloc.shape[0]:
+            print('Size of Q matrix is wrong, creating a new one.')
+            s = np.ones((config['nx'], config['nz']))
+            Para = get_2_5Dpara(srcloc, dx, dz, s, num_k_g, recloc, srcnum)
+            with open(para_pkl, 'wb') as f:
+                pickle.dump(Para, f)
+            config['Para'] = Para
+        else:
+            config['Para'] = Para
+
+    config['srcloc'] = srcloc
+    config['dx'] = dx
+    config['dz'] = dz
+    config['recloc'] = recloc
+    config['srcnum'] = srcnum
+
+    return config
+
+
+def forward_simulation(outputs, config):
+
+    Para = config['Para']
+    dx = config['dx']
+    dz = config['dz']
+    recloc = config['recloc']
+
+    # Inputs: delta V
+    # num_samples = outputs.shape[1]
+    # inputs = np.zeros((num_samples, recloc.shape[0]))
+    sigma_size = (dx.size, dz.size)
+
+    # TODO: add multiprocessing
+    # for i in range(num_samples):
+    s = np.reshape(outputs, sigma_size)
+    dobs, _ = dcfw2_5D(s, Para)
+    inputs = dobs.flatten()
+
+    yield inputs
+
+
+def make_dataset(config_file):
+
+    config = read_config_file(config_file)
+    os.makedirs(config['data_dir'], exist_ok=True)
+    config = get_forward_para(config)
+
+    i = 1
+    for sigma in get_rand_model(config):
+        for potential in forward_simulation(sigma, config):
+            npz_name = os.path.join(config['data_dir'], 'raw_data_' + str(i))
+            np.savez_compressed(npz_name, inputs=potential, outputs=1/sigma)
+            i += 1
