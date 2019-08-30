@@ -1,4 +1,12 @@
-"""Generate synthetic conductivity models randomly."""
+"""
+Generate synthetic conductivity models randomly.
+
+References
+----------
+https://stackoverflow.com/questions/44865023/circular-masking-an-image-in-python-using-numpy-arrays
+https://docs.scipy.org/doc/numpy-1.16.0/reference/routines.random.html
+https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.truncnorm.html#scipy.stats.truncnorm
+"""
 from __future__ import division, absolute_import, print_function
 
 import numpy as np
@@ -6,12 +14,6 @@ from scipy.signal import convolve2d
 from scipy.stats import norm, truncnorm, uniform
 
 from ..utils.io_utils import read_config_file
-
-
-# Reference:
-# https://stackoverflow.com/questions/44865023/circular-masking-an-image-in-python-using-numpy-arrays
-# https://docs.scipy.org/doc/numpy-1.16.0/reference/routines.random.html
-# https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.truncnorm.html#scipy.stats.truncnorm
 
 
 def rand_rect(x_bound, y_bound, w_range, h_range, num_rect, dtype='int'):
@@ -65,14 +67,14 @@ def create_circular_mask(h, w, center=None, radius=None):
     if radius is None:  # use the smallest distance between the center and image walls
         radius = min(center[0], center[1], w - center[0], h - center[1])
 
-    Y, X = np.ogrid[:h, :w]
-    dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
+    y, x = np.ogrid[:h, :w]
+    dist_from_center = np.sqrt((x - center[0]) ** 2 + (y - center[1]) ** 2)
 
     mask = dist_from_center <= radius
     return mask
 
 
-def smooth2d(arr, kernel_shape):
+def smooth2d(arr: np.ndarray, kernel_shape: tuple) -> np.ndarray:
     """
     Smooth 2d array using moving average.
 
@@ -90,7 +92,7 @@ def smooth2d(arr, kernel_shape):
     arr = np.asarray(arr)
     if not arr.ndim == 2:
         raise ValueError('The array to be smoothed must be a 2D array.')
-    if not len(kernel_shape) == 2:
+    if len(kernel_shape) != 2:
         raise ValueError('The kernel_shape must be an integer sequence of 2 elements.')
 
     arr = convolve2d(arr, np.ones(kernel_shape), mode='same')
@@ -102,6 +104,10 @@ def smooth2d(arr, kernel_shape):
 def get_pd(**kwargs):
 
     essential_keys = ['use_hidden', 'pdf', 'scale', 'a', 'b', 'hidden_for_a', 'hidden_for_b', 'hidden_pdf']
+
+    for key in essential_keys:
+        if key not in kwargs:
+            raise ValueError('You did not input enough or correct keyword argument.')
 
     use_hidden = kwargs['use_hidden']
     pdf = kwargs['pdf']
@@ -124,6 +130,8 @@ def get_pd(**kwargs):
                                    -np.inf, np.inf, scale, hidden_pdf)
             else:
                 raise ValueError('You did not input enough or correct keyword argument.')
+        else:
+            raise ValueError('You did not input enough or correct keyword argument.')
     else:
         if pdf == 'uniform':
             pd = uniform(a, b - a)
@@ -134,6 +142,8 @@ def get_pd(**kwargs):
                 pd = truncnorm(_a, _b, loc=a, scale=b)
             elif scale == 'log10':
                 pd = norm(loc=a, scale=b)
+            else:
+                raise ValueError('You did not input enough or correct keyword argument.')
         else:
             raise ValueError('You did not input enough or correct keyword argument.')
 
@@ -141,8 +151,8 @@ def get_pd(**kwargs):
 
 
 def get_rvs(**kwargs):
+
     use_hidden = kwargs['use_hidden']
-    pdf = kwargs['pdf']
     scale = kwargs['scale']
     pd = kwargs['pd']
     size = kwargs['size']
@@ -257,12 +267,14 @@ class RandTruncnorm(RandPd):
                           f'std: {self._std}'])
 
 
-def get_rand_model(config_file):
+def get_rand_model(config_file, num_samples=None):
 
     config = read_config_file(config_file)
     x_bound = [0, config['nx']]
     z_bound = [0, config['nz']]
     kernel_shape = (config['x_kernel_size'], config['z_kernel_size'])
+    if num_samples is None:
+        num_samples = config['num_samples']
 
     # create the instance of probability instance
     # background
@@ -295,11 +307,10 @@ def get_rand_model(config_file):
                        hidden_for_b=(config['hidden_a_for_b_circle'], config['hidden_b_for_b_circle']),
                        hidden_pdf=config['hidden_pdf_circle'])
 
-    for _ in range(config['num_samples']):
+    for _ in range(num_samples):
 
         size = (x_bound[1], z_bound[1])
         resistivity = get_rvs(use_hidden=config['use_hidden_background'],
-                              pdf=config['pdf_background'],
                               scale=config['scale_background'],
                               pd=pd_background,
                               size=size)
@@ -316,15 +327,13 @@ def get_rand_model(config_file):
             if len(elem) == 4:
                 size = (elem[3], elem[2])
                 resistivity[elem[1]:elem[1] + elem[3],
-                elem[0]:elem[0] + elem[2]] = get_rvs(use_hidden=config['use_hidden_rect'],
-                                                     pdf=config['pdf_rect'],
-                                                     scale=config['scale_rect'],
-                                                     pd=pd_rect,
-                                                     size=size)
+                            elem[0]:elem[0] + elem[2]] = get_rvs(use_hidden=config['use_hidden_rect'],
+                                                                 scale=config['scale_rect'],
+                                                                 pd=pd_rect,
+                                                                 size=size)
             else:
                 size = resistivity[elem].shape
                 resistivity[elem] = get_rvs(use_hidden=config['use_hidden_circle'],
-                                            pdf=config['pdf_circle'],
                                             scale=config['scale_circle'],
                                             pd=pd_circle,
                                             size=size)
@@ -332,4 +341,4 @@ def get_rand_model(config_file):
         resistivity = smooth2d(resistivity, kernel_shape)
         sigma = 1 / resistivity
 
-        yield sigma
+        yield sigma.flatten()

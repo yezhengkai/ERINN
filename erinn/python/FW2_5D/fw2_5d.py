@@ -87,7 +87,7 @@ def dcfw2_5D(s, Para):
         L = A + (Para['k'][i, 0] ** 2) * sparse.spdiags(s.flatten(order='F'), 0, A.shape[0], A.shape[1])
         # now integrate for U
         U = U + (Para['g'][i, 0] * spsl.spsolve(L, 0.5 * Para['b'])).toarray()
-    print('Finished forward calc')
+    # print('Finished forward calc')
 
     # see if the Q is around and pick data otherwise return an empty vector
     try:
@@ -159,10 +159,13 @@ def get_k_g_opt(dx, dz, srcterm, num):
     k0 = np.logspace(-2, 0.5, num).reshape(1, -1)
 
     ## Calculate the A matrix
-    # Set up a matrix of radii
-    rinv = 1 / (1 / rtot[:, 0] - 1 / rtot[:, 1] + 1 / rtot[:, 2] - 1 / rtot[:, 3])
-    # check for any divide by zeros and remove them
-    i = ~np.isinf(np.sum(1 / rtot, axis=1) + rinv)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="divide by zero encountered")
+        warnings.filterwarnings("ignore", message="invalid value encountered")
+        # Set up a matrix of radii
+        rinv = 1 / (1 / rtot[:, 0] - 1 / rtot[:, 1] + 1 / rtot[:, 2] - 1 / rtot[:, 3])
+        # check for any divide by zeros and remove them
+        i = ~np.isinf(np.sum(1 / rtot, axis=1) + rinv)
     rtot = rtot[i, :]
     rinv = rinv[i].reshape(-1, 1)
 
@@ -332,6 +335,7 @@ def boundary_correction_2_5(dx, dz, s, srcterm, k, g):
     # turn the warning off b/c we know there is a divide by zero, we will fix it later.
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message="divide by zero encountered")
+        warnings.filterwarnings("ignore", message="invalid value encountered")
         # loop over all sources
         for i in range(srcterm.shape[0]):
             # norm of positive current electrode and 1st potential electrode

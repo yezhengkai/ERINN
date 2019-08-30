@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import gc
 import os
+import pickle
 import re
 import shutil
 from functools import partial
@@ -14,10 +15,20 @@ import numpy as np
 from ruamel.yaml import YAML
 from tensorflow.python.keras.utils.vis_utils import plot_model
 
-# from .data_utils import search_hdf5
 from .data_utils import prepare_for_get_2_5Dpara
 from .time_utils import datetime_in_range, datetime_range
 from ..preprocessing import log_transform
+
+
+def read_pkl(pkl):
+    with open(pkl, "rb") as f:
+        obj = pickle.load(f)
+        return obj
+
+
+def write_pkl(obj, file):
+    with open(file, "wb") as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 
 def read_config_file(config_file: {str or dict}) -> dict:
@@ -311,6 +322,7 @@ def _list_generator(dir_path, ext='.npz'):
     for file in os.listdir(dir_path):
         if os.path.isfile(os.path.join(dir_path, file)) and file.endswith(ext):
             yield file
+
 
 # TODO: gen_glob_para_h5修改或刪除
 def gen_glob_para_h5(config_file, output_h5):
@@ -794,174 +806,3 @@ def save_used_data(src_h5, used_data, dest_h5=None):
                 dset.resize((dset.shape[1] + num_valid_samples), axis=1)
                 dset[:, -num_valid_samples:] = y_valid
                 print(f'*append {dest_h5}: {dset.name}')
-
-
-# TODO: 刪除或修改 save_synth_data_ori
-def save_synth_data_ori(model, src_h5, synth_data, dest_h5=None):
-    """Save synthetic data.
-
-    The synthetic data to be checked is saved to the hdf5 file, and then the crossplot of
-    the synthetic V/I and predictive V/I can be used to check the robustness of the NN model.
-
-    Parameters
-    ----------
-    model : Instance of `keras Model`
-        The neural network model for prediction.
-    src_h5 : str
-        hdf5 file contain forward modeling parameters in the /glob_para group.
-    synth_data : tuple
-        Tuple contains synthetic V/I and log10 scale resistivity.
-        In each matrix, the number of rows must be equal to the number of samples.
-        (synth_V, synth_log_rho)
-    dest_h5 : str, default None
-        Copy hdf5 file to new destination. The default is to use src_h5 as dest_h5.
-
-    Returns
-    -------
-    None
-
-    References
-    ----------
-    https://stackoverflow.com/questions/47072859/how-to-append-data-to-one-specific-dataset-in-a-hdf5-file-with-h5py
-    https://stackoverflow.com/questions/25655588/incremental-writes-to-hdf5-with-h5py?rq=1
-    http://download.nexusformat.org/sphinx/examples/h5py/index.html
-    """
-    synth_V, synth_log_rho = synth_data
-    dest_h5 = src_h5 if dest_h5 is None else dest_h5
-
-    # Evaluate whether to preprocess
-    # V = np.nan_to_num(obs_V)  # replace nan with 0 !!!
-    # V.clip(min_V, max_V, out=V) # clip extreme value
-    pred_log_rho = model.predict(synth_V, batch_size=32)
-
-    if not os.path.isfile(dest_h5):
-        shutil.copy(src_h5, dest_h5)
-        print(f'copy {src_h5} to {dest_h5}')
-
-    num_samples = synth_V.shape[0]
-    num_features = synth_V.shape[1]
-    num_output_elem = pred_log_rho.shape[1]
-    # Because use Fortran index, data matrix should be transposed.
-    synth_V = synth_V.T.astype('float64')
-    synth_log_rho = synth_log_rho.T.astype('float64')
-    pred_log_rho = pred_log_rho.T.astype('float64')
-
-    with h5py.File(name=dest_h5, mode='a') as f:
-        # save synth_V
-        try:
-            dset = f.create_dataset('/synth_data/synth_V', data=synth_V,
-                                    chunks=True, maxshape=(num_features, None))
-            print(f'save {dest_h5}: {dset.name}')
-        except:
-            dset = f['/synth_data/synth_V']
-            dset.resize((dset.shape[1] + num_samples), axis=1)
-            dset[:, -num_samples:] = synth_V
-            print(f'*append {dest_h5}: {dset.name}')
-        # save synth_log_rho
-        try:
-            dset = f.create_dataset('/synth_data/synth_log_rho', data=synth_log_rho,
-                                    chunks=True, maxshape=(num_output_elem, None))
-            print(f'save {dest_h5}: {dset.name}')
-        except:
-            dset = f['/synth_data/synth_log_rho']
-            dset.resize((dset.shape[1] + num_samples), axis=1)
-            dset[:, -num_samples:] = synth_log_rho
-            print(f'*append {dest_h5}: {dset.name}')
-        # save pred_log_rho
-        try:
-            dset = f.create_dataset('/synth_data/pred_log_rho', data=pred_log_rho,
-                                    chunks=True, maxshape=(num_output_elem, None))
-            print(f'save {dest_h5}: {dset.name}')
-        except:
-            dset = f['/synth_data/pred_log_rho']
-            dset.resize((dset.shape[1] + num_samples), axis=1)
-            dset[:, -num_samples:] = pred_log_rho
-            print(f'*append {dest_h5}: {dset.name}')
-
-
-# TODO: 刪除或修改 save_daily_data_ori
-def save_daily_data_ori(model, src_h5, urf_dir, dest_h5=None, start=None, end=None, fmt='%Y%m%d'):
-    """Save daily data.
-
-    The synthetic data to be checked is saved to the hdf5 file, and then the crossplot of
-    the synthetic V/I and predictive V/I can be used to check the robustness of the NN model.
-
-    Parameters
-    ----------
-    model : Instance of `keras Model`
-        The neural network model for prediction.
-    src_h5 : str
-        hdf5 file contain forward modeling parameters in the /glob_para group.
-    urf_dir : str
-        Directory containing urf files.
-    dest_h5 : str, default None
-        Copy hdf5 file to new destination. The default is to use src_h5 as dest_h5.
-    start : str, default None
-        time string. e.g. '20180612'.
-        If 'start' is None, 'start' wiil use'00010101'.
-    end : str, default None
-        time string. e.g. '20180630'.
-        If 'end' is None, 'end' will use '99991231'.
-    fmt : str, default '%Y%m%d'
-        Format that parse 'start' and 'end' string.
-        It is strongly recommended not to change this format!
-
-    Returns
-    -------
-    None
-
-    References
-    ----------
-    http://download.nexusformat.org/sphinx/examples/h5py/index.html
-    """
-
-    dest_h5 = src_h5 if dest_h5 is None else dest_h5
-
-    if not os.path.isfile(dest_h5):
-        shutil.copy(src_h5, dest_h5)
-        print(f'copy {src_h5} to {dest_h5}')
-
-    # convert start and end to datetime.datetime instance
-    start, end = datetime_range(start, end, fmt=fmt)
-    # get receive_date list
-    dlist = list(''.join(dlist.split('.')[
-                 0:-1]) for dlist in os.listdir(urf_dir) if dlist.endswith(".urf"))
-    # filter dates in datetime range and return an iterable filter instance
-    it = filter(lambda t: datetime_in_range(t, start, end), dlist)
-
-    for receive_date in it:
-
-        urf = os.path.join(urf_dir, f'{receive_date}.urf')
-        _, _, _, _, data = read_urf(urf)
-        obs_V = data[:, 4].reshape(1, -1)
-        V = np.nan_to_num(obs_V)  # replace nan with 0 !!!
-        missing_value = u'replace nan with 0'  # UTF-8 encoding
-        pred_log_rho = model.predict(V, batch_size=32)
-
-        # Because use Fortran index, data matrix should be transposed.
-        obs_V = obs_V.T.astype('float64')
-        pred_log_rho = pred_log_rho.T.astype('float64')
-
-        with h5py.File(name=dest_h5, mode='a') as f:
-            # save pred_log_rho
-            try:
-                dset = f.create_dataset(
-                    f'/daily_data/{receive_date}/pred_log_rho',
-                    data=pred_log_rho, chunks=True)
-                dset.attrs['missing_value'] = missing_value
-                print(f'save {dest_h5}: {dset.name}')
-            except:
-                dset = f[f'/daily_data/{receive_date}/pred_log_rho']
-                dset[:] = pred_log_rho
-                dset.attrs['missing_value'] = missing_value
-                print(f'*resave {dest_h5}: {dset.name}')
-            # save obs_V
-            try:
-                dset = f.create_dataset(
-                    f'/daily_data/{receive_date}/obs_V',
-                    data=obs_V, chunks=True)
-                print(f'save {dest_h5}: {dset.name}')
-            except:
-                dset = f[f'/daily_data/{receive_date}/obs_V']
-                dset[:] = obs_V
-                print(f'*resave {dest_h5}: {dset.name}')
