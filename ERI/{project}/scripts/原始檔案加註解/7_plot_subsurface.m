@@ -8,7 +8,7 @@ addpath(genpath(toolbox_dir));
 prediction_dir = fullfile('..', 'models', 'predictions');
 config_json = fullfile('..', 'config', 'config.json');
 testing_h5 = fullfile(prediction_dir, 'testing.h5');
-%daily_h5 = fullfile(prediction_dir, 'daily.h5');
+daily_h5 = fullfile(prediction_dir, 'daily.h5');
 report_dir = fullfile('..', 'reports');
 
 out_testing_dir = fullfile(report_dir, 'testing_figs');
@@ -17,10 +17,10 @@ if ~exist(out_testing_dir, 'dir')
 end
 
 synth_data_testing = load_synth_data(testing_h5);
-%daily_data = load_daily_data(daily_h5);
+daily_data = load_daily_data(daily_h5);
 
 %% synthetic data: crossplot(synth_V v.s. pred_V)
-for i = 1:size(synth_data_testing.synth_V, 1)
+for i = 1:size(synth_data.synth_V, 1)
     fig = crossplot_synth(synth_data_testing.synth_V(i, :), ...
                           synth_data_testing.pred_V(i, :));
     
@@ -42,7 +42,7 @@ ticks = 0:0.5:3;
 ticklabels = cellfun(@(x) num2str(x, '%.1f'), ...
                      num2cell(10 .^ ticks), ...
                      'UniformOutput', false);
-for i = 1:size(synth_data_testing.synth_log_rho, 1)
+for i = 1:size(synth_data.synth_log_rho, 1)
     synth_log_rho = reshape(synth_data_testing.synth_log_rho(i, :), nx, nz)';
     pred_log_rho = reshape(synth_data_testing.pred_log_rho(i, :), nx, nz)';
     fig = structureplot_synth(synth_log_rho, pred_log_rho, nx, nz, xz);
@@ -71,30 +71,30 @@ print(fig, img_name, '-dpng', '-r300');
 close(fig);
 
 %% daily data: crossplot(obs_V v.s. pred_V)
-% for i = 1:size(daily_data.obs_V, 1)
-%     fig = crossplot_daily(daily_data.obs_V(i, :), ...
-%                           daily_data.pred_V(i, :));
-%     fig.CurrentAxes.Title.String = daily_data.date{i};
-%     img_name = fullfile(out_daily_dir,...
-%                         strcat('crossplot_', daily_data.date{i},'.png'));
-%     print(fig, img_name, '-dpng', '-r300');
-%     close(fig);
-% end
+for i = 1:size(daily_data.obs_V, 1)
+    fig = crossplot_daily(daily_data.obs_V(i, :), ...
+                          daily_data.pred_V(i, :));
+    fig.CurrentAxes.Title.String = daily_data.date{i};
+    img_name = fullfile(out_daily_dir,...
+                        strcat('crossplot_', daily_data.date{i},'.png'));
+    print(fig, img_name, '-dpng', '-r300');
+    close(fig);
+end
 
 %% daily data: subsurface structureplot
-% for i = 1:size(daily_data.obs_V, 1)
-%     pred_log_rho = reshape(daily_data.pred_log_rho(i, :), nx, nz)';
-%     fig = structureplot_daily(pred_log_rho, nx, nz, xz);
-%     fig.CurrentAxes.Title.String = daily_data.date{i};
-%     cbar = fig.Children.findobj('-regexp', 'Tag', 'cbar');
-%     caxis(log_rho_range);
-%     cbar.Ticks = ticks;
-%     cbar.TickLabels = ticklabels;
-%     img_name = fullfile(out_daily_dir,...
-%                         strcat('structureplot_', daily_data.date{i},'.png'));
-%     print(fig, img_name, '-dpng', '-r300');
-%     close(fig);
-% end
+for i = 1:size(daily_data.obs_V, 1)
+    pred_log_rho = reshape(daily_data.pred_log_rho(i, :), nx, nz)';
+    fig = structureplot_daily(pred_log_rho, nx, nz, xz);
+    fig.CurrentAxes.Title.String = daily_data.date{i};
+    cbar = fig.Children.findobj('-regexp', 'Tag', 'cbar');
+    caxis(log_rho_range);
+    cbar.Ticks = ticks;
+    cbar.TickLabels = ticklabels;
+    img_name = fullfile(out_daily_dir,...
+                        strcat('structureplot_', daily_data.date{i},'.png'));
+    print(fig, img_name, '-dpng', '-r300');
+    close(fig);
+end
 
 %% remove search path
 rmpath(genpath(toolbox_dir));

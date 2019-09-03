@@ -1,5 +1,5 @@
 import os
-
+##測試的時候用synthetic部分的程式碼就好，daily的部分先全部%掉不跑
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras.layers import Input, Dense, Conv2D, Flatten, Dropout, Reshape
@@ -25,8 +25,8 @@ glob_para_h5 = os.path.join('..', 'config', 'glob_para.h5')
 npz_dir = os.path.join('..', 'data', 'processed_data', 'testing')
 weights_dir = os.path.join('..', 'models', 'weights')
 dest1_h5 = os.path.join('..', 'models', 'predictions', 'testing.h5')
-#dest2_h5 = os.path.join('..', 'models', 'predictions', 'daily.h5')
-#urf_dir = os.path.join('..', 'data', 'daily_data')
+dest2_h5 = os.path.join('..', 'models', 'predictions', 'daily.h5')
+urf_dir = os.path.join('..', 'data', 'daily_data')
 
 npz_list = get_npz_list(npz_dir)
 input_shape = np.load(npz_list[0])['Inputs'].shape  # use tuple
@@ -75,4 +75,4 @@ model.load_weights(os.path.join(weights_dir, 'trained_weight.h5'))
 
 # predict and save
 save_synth_data(model, glob_para_h5, npz_list, dest_h5=dest1_h5)
-#save_daily_data(model, glob_para_h5, urf_dir, dest_h5=dest2_h5)
+save_daily_data(model, glob_para_h5, urf_dir, dest_h5=dest2_h5)

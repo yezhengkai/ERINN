@@ -3,7 +3,7 @@ import os
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.python.keras.layers import Input, Dense, Conv2D, Flatten, Dropout
+from tensorflow.python.keras.layers import Input, Dense, Conv2D, Flatten, Dropout#FCN會用到的:Conv2DTranspose, Cropping2D, 
 from tensorflow.python.keras.layers import LeakyReLU
 from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.optimizers import Adam
@@ -11,7 +11,7 @@ from tensorflow.python.keras.regularizers import l2
 from tensorflow.python.keras.utils import multi_gpu_model
 
 from erinn.python.generator import DataGenerator
-from erinn.python.metrics import r_squared #決定係數，若在線性回歸中值會在0~1，最好的話會是1
+from erinn.python.metrics import r_squared
 from erinn.python.utils.io_utils import get_npz_list
 
 
@@ -26,8 +26,8 @@ tf.keras.backend.set_session(session)
 npz_dir = os.path.join('..', 'data', 'processed_data', 'training')
 weights_dir = os.path.join('..', 'models', 'weights')
 tb_log_dir = os.path.join('..', 'models', 'logs')
-gpus = 0  # use 0 gpu
-epochs = 25  # epoch represents the number of times all samples have been viewed
+gpus = 2  # use 2 gpu
+epochs = 250  # epoch represents the number of times all samples have been viewed 訓練次數
 
 npz_list = get_npz_list(npz_dir)  # training with all samples
 input_shape = np.load(npz_list[0])['Inputs'].shape  # use tuple
@@ -35,7 +35,7 @@ output_shape = (np.load(npz_list[0])['Targets'].size, )  # use tuple
 
 
 # data generator
-split_point = -5
+split_point = -1000 #代表資料的最後1000筆拿來做驗證，其他資料拿來訓練。根據資料量來調整
 training_generator = DataGenerator(npz_list[:split_point], input_shape, output_shape,
                                    batch_size=64, shuffle=True)
 validation_generator = DataGenerator(npz_list[split_point:], input_shape, output_shape,
@@ -64,18 +64,18 @@ def standard_unit(input_tensor, stage, num_filter, kernel_size=3, strides=(1, 1)
 
 
 num_filter = [12, 32, 48, 48, 32]
-down_strides = (2, 2)
+down_strides = (2, 2) #filter縮減尺寸設定 (2,2)代表x向跳兩格、y向跳兩格這樣掃整個矩陣
 with tf.device('/cpu:0'):
     inputs = Input(input_shape, name='main_input')
     reduced = Dropout(0.2, name='dp_0')(inputs)
 
-    conv1_1 = standard_unit(reduced, stage='11', num_filter=num_filter[0], strides=down_strides)
-    conv2_1 = standard_unit(conv1_1, stage='21', num_filter=num_filter[1], strides=down_strides)
-    conv3_1 = standard_unit(conv2_1, stage='31', num_filter=num_filter[2], strides=down_strides)
+    conv1_1 = standard_unit(reduced, stage='11', num_filter=num_filter[0], strides=down_strides) #做捲積運算
+    conv2_1 = standard_unit(conv1_1, stage='21', num_filter=num_filter[1], strides=down_strides) #學長論文捲積示意圖，尺寸縮減的部分
+    conv3_1 = standard_unit(conv2_1, stage='31', num_filter=num_filter[2], strides=down_strides) #這段是沒有擴增再裁切的部分
     conv4_1 = standard_unit(conv3_1, stage='41', num_filter=num_filter[3], strides=down_strides)
     conv5_1 = standard_unit(conv4_1, stage='51', num_filter=num_filter[4])
-
-    flat = Flatten(name='flatten_1')(conv5_1)
+	#這行之後參考學長改的code，後面做放大再裁切的動作
+    flat = Flatten(name='flatten_1')(conv5_1) #將3維的資料拉平成column vetor
     dense_1 = Dense(512, activation=LeakyReLU(), name='dense_1', kernel_initializer='he_normal',
                     kernel_regularizer=l2(1e-4))(flat)
     dense_2 = Dense(512, activation=LeakyReLU(), name='dense_2', kernel_initializer='he_normal',

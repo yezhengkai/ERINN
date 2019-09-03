@@ -1,8 +1,10 @@
+##先小訓練產生一個初始的權重再用training.py下去跑全部的資料
+
 import os
 
 import numpy as np
 import tensorflow as tf
-from tensorflow import keras
+from tensorflow.python import keras
 from tensorflow.python.keras.layers import Input, Dense, Conv2D, Flatten, Dropout
 from tensorflow.python.keras.layers import LeakyReLU
 from tensorflow.python.keras.models import Model
@@ -11,9 +13,8 @@ from tensorflow.python.keras.regularizers import l2
 from tensorflow.python.keras.utils import multi_gpu_model
 
 from erinn.python.generator import DataGenerator
-from erinn.python.metrics import r_squared #決定係數，若在線性回歸中值會在0~1，最好的話會是1
+from erinn.python.metrics import r_squared
 from erinn.python.utils.io_utils import get_npz_list
-
 
 # Allowing GPU memory growth
 config = tf.ConfigProto()
@@ -26,16 +27,17 @@ tf.keras.backend.set_session(session)
 npz_dir = os.path.join('..', 'data', 'processed_data', 'training')
 weights_dir = os.path.join('..', 'models', 'weights')
 tb_log_dir = os.path.join('..', 'models', 'logs')
-gpus = 0  # use 0 gpu
-epochs = 25  # epoch represents the number of times all samples have been viewed
+gpus = 2 #要用幾顆GPU去跑，若是0就是用CPU跑
+epochs = 1
 
-npz_list = get_npz_list(npz_dir)  # training with all samples
+npz_list = get_npz_list(npz_dir)
+npz_list = npz_list[0:int(len(npz_list) * 0.4)]  # pre-training with small samples
 input_shape = np.load(npz_list[0])['Inputs'].shape  # use tuple
 output_shape = (np.load(npz_list[0])['Targets'].size, )  # use tuple
 
 
 # data generator
-split_point = -5
+split_point = -10
 training_generator = DataGenerator(npz_list[:split_point], input_shape, output_shape,
                                    batch_size=64, shuffle=True)
 validation_generator = DataGenerator(npz_list[split_point:], input_shape, output_shape,
@@ -50,6 +52,7 @@ callbacks = [tensorboard]
 
 # create model (Model modified from original Alexnet)
 def standard_unit(input_tensor, stage, num_filter, kernel_size=3, strides=(1, 1)):
+#這個過程會讓檔案的size縮減，需要將其放大再裁切成想要的尺寸，概念見學長論文P.31的圖
     dropout_rate = 0.2
     act = LeakyReLU()
 
@@ -86,15 +89,16 @@ with tf.device('/cpu:0'):
 
 
 # training
+# https://github.com/keras-team/keras/issues/10842
+# https://stackoverflow.com/questions/52932406/is-the-class-generator-inheriting-sequence-thread-safe-in-keras-tensorflow
+# use_multiprocessing not working on Windows
 if gpus <= 1:
     # 1 gpu
-    model.compile(optimizer=Adam(lr=1e-4), loss='mean_squared_error', metrics=[r_squared])
-    model.load_weights(os.path.join(weights_dir, 'pretrained_weight.h5'))
+    model.compile(optimizer=Adam(lr=1e-3), loss='mean_squared_error', metrics=[r_squared])
     original_weights = keras.backend.batch_get_value(model.weights)
-    history = model.fit_generator(generator=training_generator,
-                                  validation_data=validation_generator,
-                                  epochs=epochs, use_multiprocessing=False,
-                                  callbacks=callbacks, workers=4)
+    model.fit_generator(generator=training_generator, validation_data=validation_generator,
+                        epochs=epochs, use_multiprocessing=False, callbacks=callbacks,
+                        workers=4)
     # check weights
     weights = keras.backend.batch_get_value(model.weights)
     if all([np.all(w == ow) for w, ow in zip(weights, original_weights)]):
@@ -103,14 +107,13 @@ if gpus <= 1:
         print('Weights in the template model have changed')
 else:
     # 2 gpus
-    model.load_weights(os.path.join(weights_dir, 'pretrained_weight.h5'))
     original_weights = keras.backend.batch_get_value(model.weights)
     parallel_model = multi_gpu_model(model, gpus=gpus, cpu_relocation=False, cpu_merge=True)
-    parallel_model.compile(optimizer=Adam(lr=1e-4), loss='mean_squared_error', metrics=[r_squared])
+    parallel_model.compile(optimizer=Adam(lr=1e-3), loss='mean_squared_error', metrics=[r_squared])
     history = parallel_model.fit_generator(generator=training_generator,
                                            validation_data=validation_generator,
                                            epochs=epochs, use_multiprocessing=False,
-                                           callbacks=callbacks, workers=4)
+                                           callbacks=[tensorboard], workers=4)
     # check weights
     # https://github.com/keras-team/keras/issues/11313
     weights = keras.backend.batch_get_value(model.weights)
@@ -129,4 +132,4 @@ else:
 
 # save weights
 os.makedirs(weights_dir, exist_ok=True)
-model.save_weights(os.path.join(weights_dir, 'trained_weight.h5'))
+model.save_weights(os.path.join(weights_dir, 'pretrained_weight.h5'))

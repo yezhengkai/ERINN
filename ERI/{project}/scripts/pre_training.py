@@ -25,7 +25,7 @@ tf.keras.backend.set_session(session)
 npz_dir = os.path.join('..', 'data', 'processed_data', 'training')
 weights_dir = os.path.join('..', 'models', 'weights')
 tb_log_dir = os.path.join('..', 'models', 'logs')
-gpus = 2
+gpus = 0
 epochs = 1
 
 npz_list = get_npz_list(npz_dir)
@@ -48,10 +48,6 @@ tensorboard = keras.callbacks.TensorBoard(log_dir=tb_log_dir, histogram_freq=0,
 callbacks = [tensorboard]
 
 
-# My project uses FCN, but data should be manipulated (cropping or padding) in the hidden layer
-# to fit the input and output shapes. Therefore, we have established the following networks
-# that are suitable for any situation and do not need to be modified. But the final performance may be worse.
-# In addition, you can set up your own network by replacing the following sections.
 # create model (Model modified from original Alexnet)
 def standard_unit(input_tensor, stage, num_filter, kernel_size=3, strides=(1, 1)):
     dropout_rate = 0.2

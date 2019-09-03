@@ -6,14 +6,14 @@ addpath(genpath(toolbox_dir));
 
 %% setting
 generate_config_json = true;
-config_json = fullfile('..', 'config', 'config.json');
+config_json = fullfile('..', 'config', 'config.json'); %創建資料夾的方法，可參考
 urf = fullfile('..', 'config', 'geo.urf');
 array_type = 'CPP';
 core = 'rand_block';
-pdf = 'log10_uniform';
+pdf = 'log10_uniform'; %以10為底數的log均勻分布
 
 h5 = fullfile('..', 'config', 'glob_para.h5');
-num_h5 = 4;
+num_h5 = 40; %跑40次
 
 %% generate config json
 % Use following comments to create a default config file.
@@ -40,7 +40,7 @@ end
 %% generate required data
 % generate synthetic data
 for i = 1:num_h5
-    gen_data(config_json);
+    gen_data(config_json); %總共會跑出samples*num_h5個數量的model
 end
 
 % generate global parameters
