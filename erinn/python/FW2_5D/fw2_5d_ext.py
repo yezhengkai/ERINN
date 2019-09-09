@@ -228,4 +228,4 @@ def _make_dataset(zip_item, config, dir_name):
     dobs = forward_simulation(sigma, config)
     # pickle dump/load is faster than numpy savez_compressed(or save)/load
     pkl_name = os.path.join(dir_name, f'raw_data_{suffix_num}.pkl')
-    write_pkl({'inputs': dobs, 'targets': 1 / sigma}, pkl_name)
+    write_pkl({'inputs': dobs, 'targets': np.log10(1 / sigma)}, pkl_name)

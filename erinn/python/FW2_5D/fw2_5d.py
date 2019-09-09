@@ -487,7 +487,7 @@ def linint(x, z, xr, zr):
         v[ind_x[1], ind_z[1]] = (1 - dx[1] / Dx) * (1 - dz[1] / Dz)
 
         # Insert Row into Q matrix
-        Q[i, :] = v.reshape(1, -1, order='F')
+        Q[i, :] = v.reshape((1, -1), order='F')
 
     return Q
 
@@ -502,17 +502,17 @@ def div2d(dx, dz):
     # Number the phi grid
     num_p = (Nx + 2) * (Nz + 2)
     tmp = np.arange(0, num_p)
-    GRDp = tmp.reshape(Nx + 2, Nz + 2, order='F')
+    GRDp = tmp.reshape((Nx + 2, Nz + 2), order='F')
 
     # Number the Ax grid
     nax = (Nx + 1) * (Nz + 2)
     tmp = np.arange(0, nax)
-    GRDax = tmp.reshape(Nx + 1, Nz + 2, order='F')
+    GRDax = tmp.reshape((Nx + 1, Nz + 2), order='F')
 
     # Number the Az grid
     naz = (Nx + 2) * (Nz + 1)
     tmp = np.arange(0, naz)
-    GRDaz = tmp.reshape(Nx + 2, Nz + 1, order='F')
+    GRDaz = tmp.reshape((Nx + 2, Nz + 1), order='F')
 
     # Generates the grid
     ex = np.ones((Nx + 2, 1))
@@ -582,17 +582,17 @@ def grad2d(dx, dz):
     # Number the phi grid
     num_p = (Nx + 2) * (Nz + 2)
     tmp = np.arange(0, num_p)
-    GRDp = tmp.reshape(Nx + 2, Nz + 2, order='F')
+    GRDp = tmp.reshape((Nx + 2, Nz + 2), order='F')
 
     # Number the Ax grid
     nax = (Nx + 1) * (Nz + 2)
     tmp = np.arange(0, nax)
-    GRDax = tmp.reshape(Nx + 1, Nz + 2, order='F')
+    GRDax = tmp.reshape((Nx + 1, Nz + 2), order='F')
 
     # Number the Az grid
     naz = (Nx + 2) * (Nz + 1)
     tmp = np.arange(0, naz)
-    GRDaz = tmp.reshape(Nx + 2, Nz + 1, order='F')
+    GRDaz = tmp.reshape((Nx + 2, Nz + 1), order='F')
 
     # Generates the grid
     ex = np.ones((Nx + 2, 1))
@@ -641,12 +641,12 @@ def massf2d(s, dx, dz):
     # Number the Ax grid
     nax = (Nx + 1) * (Nz + 2)
     tmp = np.arange(0, nax)
-    GRDax = tmp.reshape(Nx + 1, Nz + 2, order='F')
+    GRDax = tmp.reshape((Nx + 1, Nz + 2), order='F')
 
     # Number the Az grid
     naz = (Nx + 2) * (Nz + 1)
     tmp = np.arange(0, naz)
-    GRDaz = tmp.reshape(Nx + 2, Nz + 1, order='F')
+    GRDaz = tmp.reshape((Nx + 2, Nz + 1), order='F')
 
     # Generates the 2D grid
     ex = np.ones((Nx + 2, 1))

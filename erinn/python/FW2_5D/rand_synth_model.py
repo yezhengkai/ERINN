@@ -338,7 +338,7 @@ def get_rand_model(config_file, num_samples=None):
                                             pd=pd_circle,
                                             size=size)
 
-        resistivity = smooth2d(resistivity, kernel_shape)
-        sigma = 1 / resistivity
+        resistivity = smooth2d(resistivity, kernel_shape)  # shape is (nx, nz)
+        sigma = 1 / resistivity.T  # shape is (nz, nx)
 
         yield sigma.flatten()
