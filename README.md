@@ -87,4 +87,29 @@ The following are definitions of the parameters in [config.json](ERI/{project}/c
 Since the package is under construction, many files are old versions.  
 Please star us for upcoming functionality.
 
-Note that we will discard the matlab part and rewrite the entire package in python.
+---
+## Note that we will discard the matlab part and rewrite the entire package in python.
+### Scheduled milestone
+
+- [x] Generate synthetic resistivity model randomly.
+    - [x] Control background, embedded rectangles and embedded circles resistivity (value and geometry).
+    - [x] Save data as pickle files.
+    - [x] Progress bar.
+    - [x] Parallel version.
+- [ ] Training neural network.
+    - [x] Data generator. Read the pickle file and provide the data to the neural network in an appropriate form.
+    - [ ] Allows users to import custom models and callbacks written in python files via configuration file.
+    - [x] Save weights of neural network.
+- [ ] Predict resistivity.
+    - [x] Save data as pickle files.
+    - [ ] Progress bar.
+    - [ ] Parallel version.
+- [ ] Predict resistance (potential/current)
+    - [ ] Save data as pickle files.
+    - [ ] Progress bar.
+    - [ ] Parallel version.
+- [ ] Plot resistivity.
+    - [ ] crossplot
+    - [ ] contour
+    - [ ] heatmap
+    - [ ] Make figures more aesthetic.
