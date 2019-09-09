@@ -15,7 +15,7 @@ if __name__ == "__main__":
 
     # testing data
     # change the path to suit your situation
-    h5_list = ['../data/synthetic_data/rand_block_YYYYMMDD_2.h5']
+    h5_list = ['../data/synthetic_data/rand_block_YYYYMMDD_2.h5'] #testing data+training data要等於全部的data
     npz_dir = '../data/processed_data/testing'
 
     write_training_npz(glob_para_h5, h5_list, npz_dir, shape='3d')
