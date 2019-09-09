@@ -9,6 +9,7 @@ import re
 import shutil
 from functools import partial
 from multiprocessing import Pool
+from typing import Union
 
 import h5py
 import numpy as np
@@ -31,7 +32,7 @@ def write_pkl(obj, file):
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 
-def read_config_file(config_file: {str or dict}) -> dict:
+def read_config_file(config_file: Union[str, dict]) -> dict:
     if isinstance(config_file, dict):
         config = config_file
     elif isinstance(config_file, str) \
@@ -308,6 +309,18 @@ def get_npz_list(dir_path, limit=None):
         file_list = [os.path.join(dir_path, file) for file in _list_generator(dir_path)]
         # for file in _list_generator(dir_path):
         # file_list.append(os.path.join(dir_path, file))
+
+    return file_list
+
+
+def get_pkl_list(dir_path, limit=None):
+    if limit:
+        # enumerate is really just a fancy generator:
+        enum_generator = enumerate(_list_generator(dir_path, ext='.pkl'))
+        file_list = [os.path.join(dir_path, file) for i, file in enum_generator
+                     if i < limit]
+    else:
+        file_list = [os.path.join(dir_path, file) for file in _list_generator(dir_path, ext='.pkl')]
 
     return file_list
 
