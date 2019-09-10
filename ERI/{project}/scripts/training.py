@@ -31,7 +31,7 @@ epochs = 25  # epoch represents the number of times all samples have been viewed
 
 npz_list = get_npz_list(npz_dir)  # training with all samples
 input_shape = np.load(npz_list[0])['Inputs'].shape  # use tuple
-output_shape = (np.load(npz_list[0])['Targets'].size, )  # use tuple
+output_shape = np.load(npz_list[0])['Targets'].shape  # change into the same size with input
 
 
 # data generator

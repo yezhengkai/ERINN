@@ -1,1 +1,0 @@
-{"output_path":"..\\data\\synthetic_data","nx":140,"nz":30,"simulate":{"geometry_urf":"..\\config\\geo.urf","array_type":"CPP","Para_mat":"..\\config\\fw2_5D_para.mat"},"generator":{"core":"rand_block","samples":20,"lower_bound":-2,"upper_bound":5,"block_x_min":3,"block_x_max":50,"block_z_min":3,"block_z_max":30}}

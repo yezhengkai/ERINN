@@ -31,7 +31,7 @@ epochs = 1
 npz_list = get_npz_list(npz_dir)
 npz_list = npz_list[0:int(len(npz_list) * 0.4)]  # pre-training with small samples
 input_shape = np.load(npz_list[0])['Inputs'].shape  # use tuple
-output_shape = (np.load(npz_list[0])['Targets'].size, )  # use tuple
+output_shape = np.load(npz_list[0])['Targets'].shape  # change into the same size with input
 
 
 # data generator
