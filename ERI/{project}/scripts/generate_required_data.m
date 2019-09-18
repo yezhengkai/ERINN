@@ -13,7 +13,7 @@ core = 'rand_block';
 pdf = 'log10_uniform';
 
 h5 = fullfile('..', 'config', 'glob_para.h5');
-num_h5 = 4;
+num_h5 = 20;
 
 %% generate config json
 % Use following comments to create a default config file.
