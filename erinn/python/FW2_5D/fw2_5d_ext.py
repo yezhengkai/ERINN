@@ -21,12 +21,12 @@ def prepare_for_get_2_5d_para(config_file, return_urf=False):
     Tx_id, Rx_id, RxP2_id, coord, data = read_urf(urf)
     # Collect pairs id
     if np.all(np.isnan(data)):
-        C_pair = [set(i) for i in combinations(Tx_id.flatten().tolist(), 2)]
-        P_pair = [set(i) for i in combinations(Rx_id.flatten().tolist(), 2)]
+        C_pair = [set(i) for i in combinations(Tx_id.flatten().tolist(), 2)]  # list of C_pair set
+        P_pair = [set(i) for i in combinations(Rx_id.flatten().tolist(), 2)]  # list of P_pair set
         CP_pair = []
         for i in range(len(C_pair)):
             for j in range(len(P_pair)):
-                if C_pair[i].isdisjoint(P_pair[j]):
+                if C_pair[i].isdisjoint(P_pair[j]):  # Return True if two sets have a null intersection.
                     CP_pair.append(sorted(C_pair[i]) + sorted(P_pair[j]))  # use sorted to convert set to list
         CP_pair = np.array(CP_pair, dtype=np.int64)
     else:
@@ -182,6 +182,19 @@ def next_path(path_pattern, only_num=False):
 
 
 def make_dataset(config_file):
+    """
+    Generate raw dataset and save it.
+
+    Parameters
+    ----------
+    config_file : str, pathlib.Path or dict
+        The path to the configured yaml file or the dictionary for configuration.
+
+    Returns
+    -------
+    None
+    """
+    # parse config
     config = read_config_file(config_file)
     train_dir = os.path.join(config['dataset_dir'], 'train')
     valid_dir = os.path.join(config['dataset_dir'], 'valid')
@@ -227,5 +240,5 @@ def _make_dataset(zip_item, config, dir_name):
     sigma, suffix_num = zip_item
     dobs = forward_simulation(sigma, config)
     # pickle dump/load is faster than numpy savez_compressed(or save)/load
-    pkl_name = os.path.join(dir_name, f'raw_data_{suffix_num}.pkl')
+    pkl_name = os.path.join(dir_name, f'raw_data_{suffix_num:0>6}.pkl')
     write_pkl({'inputs': dobs, 'targets': np.log10(1 / sigma)}, pkl_name)
