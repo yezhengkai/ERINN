@@ -9,6 +9,7 @@ import re
 import shutil
 from functools import partial
 from multiprocessing import Pool
+from pathlib import Path
 from typing import Union
 
 import h5py
@@ -35,7 +36,7 @@ def write_pkl(obj, file):
 def read_config_file(config_file: Union[str, dict]) -> dict:
     if isinstance(config_file, dict):
         config = config_file
-    elif isinstance(config_file, str) \
+    elif isinstance(config_file, (str, Path)) \
             and os.path.exists(config_file) \
             and os.path.isfile(config_file):
         # use SafeLoader/SafeDumper. Loading of a document without resolving unknown tags.
