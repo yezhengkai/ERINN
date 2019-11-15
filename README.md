@@ -17,31 +17,31 @@ Here are the specific steps:
 - numpy >= 1.16.2
 - numba >= 0.43.0
 
-## ERI project
-Under the ERI directory, there is a template named {project}.  
+## ERI project (matlab verison)
+Under the ERI directory, there is a template named {template_matlab}.  
 You can use the template directly and  change the name of the template to a meaningful name, 
 such as a field name or an experiment name.
     
 This template has some useful scripts:
-- [generate_required_data.m](ERI/{project}/scripts/generate_required_data.m)
+- [generate_required_data.m](ERI/template_matlab/scripts/generate_required_data.m)
   - Generate synthetic resistivity data and 
     equivalent resistance(potential difference divided by current) receive by electrode array.
   - Generate essential global parameters.
-- [generate_processed_data.py](ERI/{project}/scripts/generate_processed_data.py)
+- [generate_processed_data.py](ERI/template_matlab/scripts/generate_processed_data.py)
   - Generate input and output data for neural network.
-- [pre_training.py](ERI/{project}/scripts/pre_training.py)
+- [pre_training.py](ERI/template_matlab/scripts/pre_training.py)
   - Pre-train the neural network using small dataset.
-- [training.py](ERI/{project}/scripts/training.py)
+- [training.py](ERI/template_matlab/scripts/training.py)
   - Train the neural network with the pre-trained weight.
-- [predict_resistivity.py](ERI/{project}/scripts/predict_resistivity.py)
+- [predict_resistivity.py](ERI/template_matlab/scripts/predict_resistivity.py)
   - Predict the underground resistivity.
-- [predict_potential.m](ERI/{project}/scripts/predict_potential.m)
+- [predict_potential.m](ERI/template_matlab/scripts/predict_potential.m)
   - Use predictive resistivity to simulate potential and get equivalent resistance.
-- [plot_subsurface.m](ERI/{project}/scripts/plot_subsurface.m)
+- [plot_subsurface.m](ERI/template_matlab/scripts/plot_subsurface.m)
   - Plot some figures to check the robustness of neural network.
 
 ---
-The following are definitions of the parameters in [config.json](ERI/{project}/config/config.json):
+The following are definitions of the parameters in [config.json](ERI/template_matlab/config/config.json):
 - output_path:   
   The directory that stores synthetic data.
 
@@ -98,6 +98,7 @@ Please star us for upcoming functionality.
     - [x] Parallel version.
 - [ ] Training neural network.
     - [x] Data generator. Read the pickle file and provide the data to the neural network in an appropriate form.
+    - [x] Data augmentation in data generator.
     - [ ] Allows users to import custom models and callbacks written in python files via configuration file.
     - [x] Save weights of neural network.
 - [ ] Predict resistivity.
@@ -105,11 +106,19 @@ Please star us for upcoming functionality.
     - [ ] Progress bar.
     - [ ] Parallel version.
 - [ ] Predict resistance (potential/current)
-    - [ ] Save data as pickle files.
+    - [x] Save data as pickle files.
     - [ ] Progress bar.
     - [ ] Parallel version.
 - [ ] Plot resistivity.
-    - [ ] crossplot
-    - [ ] contour
-    - [ ] heatmap
+    - [x] synthetic data
+        - [x] crossplot
+        - [ ] contour
+        - [X] heatmap
+    - [ ] filed data
+        - [ ] crossplot
+        - [ ] contour
+    - [ ] Parallel version
     - [ ] Make figures more aesthetic.
+- [ ] Build docker image. (optional)
+- [ ] Publishing to PyPi. (optional)
+- [ ] GUI (optional)
