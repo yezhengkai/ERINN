@@ -1,9 +1,9 @@
 from __future__ import division, absolute_import, print_function
 
-from tensorflow.python.keras.layers import Input, Dense, Conv1D, Flatten, Reshape
-from tensorflow.python.keras.layers.normalization import BatchNormalization
-from tensorflow.python.keras.layers.advanced_activations import PReLU
-from tensorflow.python.keras.models import Model
+from tensorflow.keras.layers import Input, Dense, Conv1D, Flatten, Reshape
+from tensorflow.keras.layers.normalization import BatchNormalization
+from tensorflow.keras.layers.advanced_activations import PReLU
+from tensorflow.keras.models import Model
 
 # 第三種架構
 

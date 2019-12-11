@@ -1,8 +1,8 @@
 from __future__ import division, absolute_import, print_function
 
-from tensorflow.python.keras.layers import Input, Dense, Conv1D, Flatten, Reshape, Permute
-from tensorflow.python.keras.regularizers import l2
-from tensorflow.python.keras.models import Model
+from tensorflow.keras.layers import Input, Dense, Conv1D, Flatten, Reshape, Permute
+from tensorflow.keras.regularizers import l2
+from tensorflow.keras.models import Model
 
 # 第四種架構
 

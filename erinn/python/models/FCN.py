@@ -2,10 +2,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from tensorflow.python.keras.layers import Input, Dense, Conv2D, Flatten, Reshape, Dropout
-from tensorflow.python.keras.layers.advanced_activations import PReLU
-from tensorflow.python.keras.layers.normalization import BatchNormalization
-from tensorflow.python.keras.models import Model
+from tensorflow.keras.layers import Input, Dense, Conv2D, Flatten, Reshape, Dropout
+from tensorflow.keras.layers.advanced_activations import PReLU
+from tensorflow.keras.layers.normalization import BatchNormalization
+from tensorflow.keras.models import Model
 
 
 def get_fcn_relu(output_size, height, width, channel, show=True):

@@ -1,8 +1,8 @@
 from __future__ import absolute_import, division, print_function
 
-from tensorflow.python.keras.layers import Input, Dense
-from tensorflow.python.keras.layers.normalization import BatchNormalization
-from tensorflow.python.keras.models import Model
+from tensorflow.keras.layers import Input, Dense
+from tensorflow.keras.layers.normalization import BatchNormalization
+from tensorflow.keras.models import Model
 
 
 # 第一種架構: 深度前饋網路(deep feedforward network)

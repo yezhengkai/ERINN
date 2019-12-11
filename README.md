@@ -13,9 +13,11 @@ Here are the specific steps:
 ## Requirement
 - matlab >= 2016b
 - python >= 3.6
-- tensorflow = 1.13.1
+- matplotlib >= 3.0.3
 - numpy >= 1.16.2
 - numba >= 0.43.0
+- ruamel.yaml >= 0.16.5
+- tensorflow = 2.0.0
 
 ## ERI project (matlab verison)
 Under the ERI directory, there is a template named {template_matlab}.  
@@ -119,6 +121,7 @@ Please star us for upcoming functionality.
         - [ ] contour
     - [ ] Parallel version
     - [ ] Make figures more aesthetic.
+- [ ] Go to tensorflow 2.0
 - [ ] Build docker image. (optional)
 - [ ] Publishing to PyPi. (optional)
 - [ ] GUI (optional)
