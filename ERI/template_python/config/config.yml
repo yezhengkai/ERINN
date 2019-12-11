@@ -6,7 +6,8 @@ train_ratio: 0.8  # Ratio of the number of samples (num_samples) to be used for 
 valid_ratio: 0.1  # Ratio of the number of samples (num_samples) to be used for validating.
 test_ratio: 0.1  # Ratio of the number of samples (num_samples) to be used for testing.
 geometry_urf: "../config/geo.urf"  # The path to the urf file is used to construct the electrode array in forward simulation.
-Para_pkl: "../config/Para.pkl"  # The path to the pickle file is used to read and write the necessary parameters used in FW2_5D.
+fw2_5D_para_pkl: "../config/fw2_5D_para.pkl"  # The path to the pickle file is used to read and write the necessary parameters used in FW2_5D.
+glob_para_pkl: "../config/glob_para.pkl"  # Information about the forward model.
 array_type: "all_combination"  # {"all_combination", "Wenner"}. Select the electrode pair that matches the array configuration. All array types are dipole-dipole settings.
 num_k_g: 4  # control the number of wave number (k) and weight (g).
 
@@ -32,7 +33,9 @@ hidden_a_for_b_background: 0.001  # lower bound or mu (mean) of hidden_pdf_backg
 hidden_b_for_b_background: 100  # upper bound or std(standard deviation) for hidden variable b_background
 
 # --- rectangle (block)
-num_rect: 1  # number of rectangles
+num_rect:  # number of rectangles
+  type: "list"  # {"list", "range"}. The interval of type "range" including start but excluding stop.
+  value: [1]  # random sampling in `value` defined by `type`
 # ---- geometry
 w_range: [1, 140]  # width range (x direction)
 h_range: [1, 30]  # height range (z direction)
@@ -50,7 +53,9 @@ hidden_a_for_b_rect: 0.001  # lower bound or mu (mean) of hidden_pdf_background 
 hidden_b_for_b_rect: 100  # upper bound or std(standard deviation) for hidden variable b_rect
 
 # --- circle
-num_circle: 0  # number of circles
+num_circle:  # number of circles
+  type: "list"  # {"list", "range"}. The interval of type "range" including start but excluding stop.
+  value: [0]  # random sampling in `value` defined by `type`
 # ---- geometry
 radius_bound: [5, 20]  # lower bound and upper bound of radius
 # ---- value
@@ -81,6 +86,10 @@ preprocess:  # Add_noise is implemented earlier than log_transform
     kwargs:
       inverse: False  # {True, False}. Whether to perform an inverse transformation.
       inplace: True  # {True, False}. Whether to use inplace mode.
+  to_midpoint:  # Reshape inputs tensor to midpoint image. shape = (accumulated number of same midpoint, number of midpoint, 1)
+    perform: False  # {True, False}. Whether to perform to_midpoint. *NOTE: Don't use `to_midpoint` and `to_txrx` at the same time*
+  to_txrx:  # Reshape inputs tensor to Tx-Rx image. shape = (number of Tx pair, number of Rx pair, 1)
+    perform: False  # {True, False}. Whether to perform to_TxRx. *NOTE: Don't use `to_midpoint` and `to_txrx` at the same time*
 
 
 # ======================================================================================================================
@@ -103,10 +112,22 @@ preprocess_generator:  # Add_noise is implemented earlier than log_transform
     kwargs:
       inverse: False  # {True, False}. Whether to perform an inverse transformation.
       inplace: True  # {True, False}. Whether to use inplace mode.
+  to_midpoint:  # Reshape inputs tensor to midpoint image. shape = (accumulated number of same midpoint, number of midpoint, 1)
+    perform: False  # {True, False}. Whether to perform to_midpoint. *NOTE: Don't use `to_midpoint` and `to_txrx` at the same time*
+  to_txrx:  # Reshape inputs tensor to Tx-Rx image. shape = (number of Tx pair, number of Rx pair, 1)
+    perform: False  # {True, False}. Whether to perform to_TxRx. *NOTE: Don't use `to_midpoint` and `to_txrx` at the same time*
 # -- hyper parameters
 num_gpu: 2  # number of gpu
 batch_size: 64  # Size for mini-batch gradient descent
 num_epochs: 250  # number of epochs
-optimizer: "Adam"  # Select the optimizer in keras
-learning_rate: 1e-4  # Optimizer learning rate
-loss: "mean_squared_error"  # loss function for calculate gradient
+optimizer:
+  class_name: "Adam"  # Select the optimizer defined in tf.keras
+  config:  # You can add parameters that correspond to a specific optimizer.
+    learning_rate: 1e-4
+    beta_1: 0.9
+    beta_2: 0.999
+    epsilon: 1e-07
+    amsgrad: False
+    clipnorm: 1
+    clipvalue: 0.5
+loss: "mean_squared_error"  # Select the loss function in tf.keras.
