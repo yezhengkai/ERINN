@@ -33,9 +33,9 @@ def prepare_for_get_2_5d_para(config_file, return_urf=False):
         CP_pair = data[:, :4].astype(np.int64)
 
     # Convert id to coordinate
-    recloc = np.hstack((coord[CP_pair[:, 2] - 1, 1:4:2],
+    RECLOC = np.hstack((coord[CP_pair[:, 2] - 1, 1:4:2],
                         coord[CP_pair[:, 3] - 1, 1:4:2]))
-    recloc[:, 1:4:2] = np.abs(recloc[:, 1:4:2])  # In urf, z is positive up. In fw25d, z is positive down.
+    RECLOC[:, 1:4:2] = np.abs(RECLOC[:, 1:4:2])  # In urf, z is positive up. In fw25d, z is positive down.
     SRCLOC = np.hstack((coord[CP_pair[:, 0] - 1, 1:4:2],
                         coord[CP_pair[:, 1] - 1, 1:4:2]))
     SRCLOC[:, 1:4:2] = np.abs(SRCLOC[:, 1:4:2])  # In urf, z is positive up. In fw25d, z is positive down.
@@ -44,16 +44,16 @@ def prepare_for_get_2_5d_para(config_file, return_urf=False):
     if config['array_type'] != 'all_combination':
         # Check if the electrode is on the ground
         at_ground = np.logical_and(np.logical_and(SRCLOC[:, 1] == 0, SRCLOC[:, 3] == 0),
-                                   np.logical_and(recloc[:, 1] == 0, recloc[:, 3] == 0))
+                                   np.logical_and(RECLOC[:, 1] == 0, RECLOC[:, 3] == 0))
         SRCLOC = SRCLOC[at_ground, :]
-        recloc = recloc[at_ground, :]
-        AM = recloc[:, 0] - SRCLOC[:, 0]
-        MN = recloc[:, 2] - recloc[:, 0]
-        NB = SRCLOC[:, 2] - recloc[:, 2]
+        RECLOC = RECLOC[at_ground, :]
+        AM = RECLOC[:, 0] - SRCLOC[:, 0]
+        MN = RECLOC[:, 2] - RECLOC[:, 0]
+        NB = SRCLOC[:, 2] - RECLOC[:, 2]
         # Check that the electrode arrangement is correct
         positive_idx = np.logical_and(np.logical_and(AM > 0, MN > 0), NB > 0)
         SRCLOC = SRCLOC[positive_idx, :]
-        recloc = recloc[positive_idx, :]
+        RECLOC = RECLOC[positive_idx, :]
         AM = AM[positive_idx]
         MN = MN[positive_idx]
         NB = NB[positive_idx]
@@ -61,24 +61,37 @@ def prepare_for_get_2_5d_para(config_file, return_urf=False):
             # Must be an integer multiple?
             row_idx = np.logical_and(AM == NB, AM % MN == 0)
             SRCLOC = SRCLOC[row_idx, :]
-            recloc = recloc[row_idx, :]
+            RECLOC = RECLOC[row_idx, :]
         elif config['array_type'] == 'Wenner':
             row_idx = np.logical_and(AM == MN, MN == NB)
             SRCLOC = SRCLOC[row_idx, :]
-            recloc = recloc[row_idx, :]
+            RECLOC = RECLOC[row_idx, :]
         elif config['array_type'] == 'Wenner_Schlumberger_NonInt':
             row_idx = np.logical_and(AM == NB, AM >= MN)
             SRCLOC = SRCLOC[row_idx, :]
-            recloc = recloc[row_idx, :]
+            RECLOC = RECLOC[row_idx, :]
 
     srcloc, srcnum = np.unique(SRCLOC, return_inverse=True, axis=0)
     srcnum = np.reshape(srcnum, (-1, 1))  # matlab index starts from 1, python index starts from 0
 
     array_len = max(coord[:, 1]) - min(coord[:, 1])
-    srcloc[:, [0, 2]] = srcloc[:, [0, 2]] - array_len / 2
-    recloc[:, [0, 2]] = recloc[:, [0, 2]] - array_len / 2
+    recloc = RECLOC.copy()
+    srcloc[:, [0, 2]] = srcloc[:, [0, 2]] - array_len / 2  # coord in model
+    recloc[:, [0, 2]] = RECLOC[:, [0, 2]] - array_len / 2  # coord in model
     dx = np.ones((config['nx'], 1))
     dz = np.ones((config['nz'], 1))
+
+    # save global parameters
+    write_pkl({'Tx_id': Tx_id, 'Rx_id': Rx_id,
+               'RxP2_id': RxP2_id,
+               'coord': coord,
+               'coord_in_model': coord - np.array([0, array_len / 2, 0, 0]),
+               'dx': dx, 'dz': dz,
+               'nx': dx.size, 'nz': dz.size,
+               'RECLOC': RECLOC, 'SRCLOC': SRCLOC,  # original coordinate
+               'recloc': recloc,
+               'srcloc': srcloc, 'srcnum': srcnum},
+              config['glob_para_pkl'])
 
     if return_urf:
         return [[srcloc, dx, dz, recloc, srcnum],
@@ -90,7 +103,7 @@ def prepare_for_get_2_5d_para(config_file, return_urf=False):
 def get_forward_para(config_file):
     config = read_config_file(config_file)
     srcloc, dx, dz, recloc, srcnum = prepare_for_get_2_5d_para(config)
-    para_pkl = config['Para_pkl']
+    para_pkl = config['fw2_5D_para_pkl']
     num_k_g = config['num_k_g']
 
     if not os.path.isfile(para_pkl):
