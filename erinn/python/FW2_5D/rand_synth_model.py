@@ -16,6 +16,29 @@ from scipy.stats import norm, truncnorm, uniform
 from ..utils.io_utils import read_config_file
 
 
+def rand_num_shape(num_shape):
+    """
+    Randomly samples an integer from the space defined in the num_shape dictionary.
+
+    Parameters
+    ----------
+    num_shape : dict
+        num_`shape`, the `shape` can be a circle, a rectangle or other shape.
+
+    Returns
+    -------
+    num : int
+        A randomly sampled integer.
+    """
+    if num_shape['type'] == 'list':
+        return int(np.random.choice(num_shape['value'], 1))
+    elif num_shape['type'] == 'range':
+        num = np.arange(*num_shape['value'])
+        return int(np.random.choice(num, 1))
+    else:
+        raise ValueError(f"{num_shape['type']} is an invalid type.")
+
+
 def rand_rect(x_bound, y_bound, w_range, h_range, num_rect, dtype='int'):
     if dtype != 'int' or dtype != 'float':
         dtype = 'int'
@@ -316,14 +339,21 @@ def get_rand_model(config_file, num_samples=None):
                               size=size)
 
         # generate parameter for rectangle and circle
-        stack = rand_rect(z_bound, x_bound, config['h_range'], config['w_range'], config['num_rect'])
+        num_rect = rand_num_shape(config['num_rect'])
+        num_circle = rand_num_shape(config['num_circle'])
+        stack = rand_rect(z_bound, x_bound,
+                          config['h_range'],
+                          config['w_range'],
+                          num_rect)
         stack.extend(rand_circle(z_bound[1], x_bound[1],
                                  z_bound, x_bound,
-                                 config['radius_bound'], config['num_circle']))
+                                 config['radius_bound'],
+                                 num_circle))
         np.random.shuffle(stack)
 
-        for _ in range(config['num_rect'] + config['num_circle']):
+        for _ in range(num_rect + num_circle):
             elem = stack.pop()
+            # TODO : Do not use length to judge whether it is circle or rectangle. Maybe use a tag. e.g. (elem, tag)
             if len(elem) == 4:
                 size = (elem[3], elem[2])
                 resistivity[elem[1]:elem[1] + elem[3],
