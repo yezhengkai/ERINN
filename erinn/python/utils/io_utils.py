@@ -10,19 +10,32 @@ import shutil
 from functools import partial
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Union
+from typing import Union, Any
 
 import h5py
 import numpy as np
 from ruamel.yaml import YAML
-from tensorflow.python.keras.utils.vis_utils import plot_model
+from tensorflow.keras.utils import plot_model
 
 from .data_utils import prepare_for_get_2_5Dpara
 from .time_utils import datetime_in_range, datetime_range
 from ..preprocessing import log_transform
 
 
-def read_pkl(pkl):
+def read_pkl(pkl: Union[str, Path]) -> Any:
+    """
+    Read pickle file.
+
+    Parameters
+    ----------
+    pkl : str or Path
+    The path od pickle file.
+
+    Returns
+    -------
+    obj : Any
+    Restored object.
+    """
     with open(pkl, "rb") as f:
         obj = pickle.load(f)
         return obj
@@ -33,12 +46,10 @@ def write_pkl(obj, file):
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 
-def read_config_file(config_file: Union[str, dict]) -> dict:
+def read_config_file(config_file: Union[str, Path, dict]) -> dict:
     if isinstance(config_file, dict):
         config = config_file
-    elif isinstance(config_file, (str, Path)) \
-            and os.path.exists(config_file) \
-            and os.path.isfile(config_file):
+    elif isinstance(config_file, (str, Path)):
         # use SafeLoader/SafeDumper. Loading of a document without resolving unknown tags.
         yaml = YAML(typ='safe')
         with open(config_file, 'r', encoding='utf-8') as f:
@@ -49,6 +60,7 @@ def read_config_file(config_file: Union[str, dict]) -> dict:
     return config
 
 
+# TODO: Maybe return a dictionary or use class
 def read_urf(urf_file):
     """
     Read urf file

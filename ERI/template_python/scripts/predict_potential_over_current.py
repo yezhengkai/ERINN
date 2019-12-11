@@ -25,7 +25,6 @@ if __name__ == '__main__':
 
     pkl_list_result = get_pkl_list(predictions_dir)
 
-    os.makedirs(predictions_dir, exist_ok=True)
     config = get_forward_para(config_file)
 
     par = partial(_forward_simulation, config=config)
