@@ -1,14 +1,13 @@
-# -*- coding: utf-8 -*-
-from __future__ import division, absolute_import, print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import generator_stop
+from __future__ import print_function
 
-from erinn import python
-
-# Globally-import.
-from erinn.python import utils
-from erinn.python import metrics
-from erinn.python import preprocessing
-from erinn.python import generator
-# from erinn.python import models
+from erinn import generator
+from erinn import metrics
+from erinn import preprocessing
+from erinn import utils
+# from erinn import models
 
 
 __version__ = '0.0.4'
