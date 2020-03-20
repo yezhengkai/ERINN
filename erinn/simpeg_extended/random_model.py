@@ -5,6 +5,7 @@ References
 ----------
 https://stackoverflow.com/questions/44865023/circular-masking-an-image-in-python-using-numpy-arrays
 https://docs.scipy.org/doc/numpy-1.16.0/reference/routines.random.html
+https://numpy.org/doc/1.18/reference/random/index.html
 https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.truncnorm.html#scipy.stats.truncnorm
 https://www.sicara.ai/blog/2019-01-28-how-computer-generate-random-numbers
 """
@@ -24,6 +25,7 @@ from scipy.stats import uniform
 from erinn.utils.io_utils import read_config_file
 
 
+# TODO: Maybe use Generator instead of RandomState
 # TODO: Check random property. Make sure every execution is different
 def rand_num_shape(num_shape):
     """Randomly samples an integer from the space defined in the num_shape dictionary.
@@ -304,14 +306,14 @@ class RandTruncnorm(RandPd):
                           f'std: {self._std}'])
 
 
-def get_random_model(config_file, mesh, num_samples=None):
+def get_random_model(config_file, mesh, num_examples=None):
 
     config = read_config_file(config_file)
     x_bound = [np.nanmin(mesh.vectorNx), np.nanmax(mesh.vectorNx)]
     z_bound = [np.nanmin(mesh.vectorNy), np.nanmax(mesh.vectorNy)]
     kernel_shape = (config['z_kernel_size'], config['x_kernel_size'])
-    if num_samples is None:
-        num_samples = config['num_samples']
+    if num_examples is None:
+        num_examples = config['num_examples']
 
     # create the instance of resistivity "value" probability distribution
     # background
@@ -344,7 +346,7 @@ def get_random_model(config_file, mesh, num_samples=None):
                        hidden_for_b=(config['hidden_a_for_b_circle'], config['hidden_b_for_b_circle']),
                        hidden_pdf=config['hidden_pdf_circle'])
 
-    for _ in range(num_samples):
+    for _ in range(num_examples):
 
         size = (mesh.nC,)
         resistivity = get_rvs(use_hidden=config['use_hidden_background'],
@@ -374,7 +376,7 @@ def get_random_model(config_file, mesh, num_samples=None):
                                                pd=pd_rect,
                                                size=size)
             elif elem[1] == 'circle':
-                resistivity[elem] = get_rvs(use_hidden=config['use_hidden_circle'],
+                resistivity[elem[0]] = get_rvs(use_hidden=config['use_hidden_circle'],
                                             scale=config['scale_circle'],
                                             pd=pd_circle,
                                             size=size)
@@ -383,5 +385,5 @@ def get_random_model(config_file, mesh, num_samples=None):
 
         resistivity = smooth2d(resistivity.reshape(mesh.nCy, mesh.nCx),
                                kernel_shape)  # shape is (nz, nx)
-
+        # The resistivity starts at the bottom left of the SimPEG 2d mesh.
         yield resistivity.flatten()
