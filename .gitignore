@@ -19,3 +19,7 @@ ERI/template_python/data/
 ERI/template_python/models/
 ERI/template_python/reports/
 SimPEG/
+
+# My file:
+erinn/example_proto.py
+erinn/legacy.py
