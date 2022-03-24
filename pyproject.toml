@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "erinn"
+version = "0.1.0"
+description = "Electrical resistivity imaging based on deep learning"
+authors = ["Zheng-Kai Ye <supon3060@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.6"
+SimPEG = "^0.13.1"
+numpy = "^1.18.1"
+numba = "^0.48.0"
+tqdm = "^4.43.0"
+h5py = "^2.10.0"
+"ruamel.yaml" = "^0.16.10"
+matplotlib = "^3.1.2"
+tensorflow = "^2.1.0"
+
+[tool.poetry.dev-dependencies]
+ipython = "^7.11.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
