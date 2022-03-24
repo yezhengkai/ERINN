@@ -30,8 +30,6 @@ training_resistance_dir = os.path.join(training_dir, 'resistance', config['resis
 training_resistivity_dir = os.path.join(training_dir, 'resistivity', config['resistivity_dirname'])
 validation_resistance_dir = os.path.join(validation_dir, 'resistance', config['resistance_dirname'])
 validation_resistivity_dir = os.path.join(validation_dir, 'resistivity', config['resistivity_dirname'])
-# pkl_dir_train = os.path.join(dataset_rootdir, 'training')
-# pkl_dir_valid = os.path.join(dataset_rootdir, 'validation')
 simulator_pkl = os.path.join(dataset_rootdir, 'simulator.pkl')
 simulator = read_pkl(simulator_pkl)  # for physical simulation
 save_model_dir = config['save_model_dir']
@@ -162,10 +160,7 @@ list_dataset_training = tf.data.Dataset.zip((list_dataset_training_inputs, list_
 list_dataset_validation_inputs = tf.data.Dataset.from_tensor_slices(validation_resistance_pkl_list)
 list_dataset_validation_targets = tf.data.Dataset.from_tensor_slices(validation_resistivity_pkl_list)
 list_dataset_validation = tf.data.Dataset.zip((list_dataset_validation_inputs, list_dataset_validation_targets))
-# pkl_list_train = get_pkl_list(pkl_dir_train)
-# pkl_list_valid = get_pkl_list(pkl_dir_valid)
-# list_dataset_train = tf.data.Dataset.from_tensor_slices(pkl_list_train)
-# list_dataset_valid = tf.data.Dataset.from_tensor_slices(pkl_list_valid)
+
 # use custom keras model to define shape of inputs and outputs
 input_shape = model.input_shape[1:]
 output_shape = model.output_shape[1:]
@@ -184,7 +179,7 @@ read_dataset_info = {
     'input_shape': input_shape,
     'output_shape': output_shape
 }
-# print(list(list_dataset_training.shuffle(buffer_size=len(training_resistance_pkl_list)).as_numpy_iterator()))
+
 # use partial to assign read_dataset_info
 par = partial(tf_read_dataset, read_dataset_info=read_dataset_info)
 # randomly shuffle file_path => read data and preprocess => take mini-batch => prefetch

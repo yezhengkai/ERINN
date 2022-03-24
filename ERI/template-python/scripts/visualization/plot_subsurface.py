@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 
-from erinn.utils.io_utils import read_config_file, read_urf, read_pkl
+from erinn.utils.io_utils import read_config_file, read_pkl
 from erinn.utils.vis_utils import plot_result_synth
 
 # TODO: Organize reusable code snippets into functions

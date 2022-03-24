@@ -2,9 +2,7 @@
 import importlib
 import os
 import re
-from datetime import datetime
 from functools import partial
-from unicodedata import name
 
 import tensorflow as tf
 from tqdm import tqdm
@@ -151,19 +149,3 @@ for i, dataset_testing_targets in tqdm(enumerate(list_dataset_testing_targets.as
 # save simulator
 simulator.config['testing'] = config
 write_pkl(simulator, simulator_pkl)
-
-# TODO: Deprecated! remove it
-# with tqdm(total=len(pkl_list_test), desc='write pkl') as pbar:
-#     for i, pred in enumerate(predict):
-#         data = read_pkl(pkl_list_test[i])  # type(data) is dict
-#         data['synthetic_resistance'] = (
-#             data.pop('resistance').reshape(input_shape[0:2])
-#         )
-#         data['synthetic_resistivity_log10'] = (
-#             data.pop('resistivity_log10').reshape(output_shape[0:2])
-#         )
-#         data['predicted_resistivity_log10'] = pred.reshape(output_shape[0:2])
-
-#         suffix = re.findall(r'\d+.pkl', pkl_list_test[i])[0]
-#         write_pkl(data, os.path.join(save_predictions_dir, f'result_{suffix}'))
-#         pbar.update()
