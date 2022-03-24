@@ -9,17 +9,11 @@ Desktop.ini
 
 # Python:
 **/__pycache__
+.venv
 
 # My directory:
 EarthImager/
 ERI/test*
-ERI/template_python/config/Para.pkl
-ERI/template_python/config/model.py
-ERI/template_python/data/
-ERI/template_python/models/
-ERI/template_python/reports/
-SimPEG/
-
-# My file:
-erinn/example_proto.py
-erinn/legacy.py
+ERI/*/data/
+ERI/*/models
+ERI/*/reports
