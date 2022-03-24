@@ -420,16 +420,16 @@ def structureplot_synth(synth_log_rho, pred_log_rho, xz, mode=None, save_dir='.'
         return fig
 
 
-def crossplot_synth(synth_V, pred_V, mode=None, save_dir='.', suffix=None, params=None):
-    """
-    Crossplot of synthetic equivalent resistivity and predictive equivalent resistivity.
+def crossplot_synth(synthetic_resistance, predicted_resistance,
+                    mode=None, save_dir='.', suffix=None, params=None):
+    """Crossplot of synthetic resistance and predicted resistance.
 
     Parameters
     ----------
-    synth_V : numpy.ndarray
-        Synthetic equivalent resistivity (Potential difference divided by current, ground truth).
-    pred_V : numpy.ndarray
-        Predictive equivalent resistivity.
+    synthetic_resistance : numpy.ndarray
+        Synthetic resistance (Potential difference divided by current, ground truth).
+    predicted_resistance : numpy.ndarray
+        Predicted resistance.
     mode : str
         Select the mode to manipulate the drawing.
         'save': save image.
@@ -448,15 +448,18 @@ def crossplot_synth(synth_V, pred_V, mode=None, save_dir='.', suffix=None, param
         The fig is returned when mode is neither 'save' nor 'show'.
     """
 
-    # get synth_V maximum and minimum
-    x_min, x_max = synth_V[~np.isnan(synth_V)].min(), synth_V[~np.isnan(synth_V)].max()
+    # get synthetic_resistance maximum and minimum
+    x_min, x_max = (
+        synthetic_resistance[~np.isnan(synthetic_resistance)].min(),
+        synthetic_resistance[~np.isnan(synthetic_resistance)].max()
+    )
     error_ratio = 0.1
 
     # calculate metrics
     # 1. Root mean squared relative error
-    RMSRE = np.sqrt(np.mean(np.power((pred_V - synth_V) / synth_V, 2))) * 100
+    RMSRE = np.sqrt(np.mean(np.power((predicted_resistance - synthetic_resistance) / synthetic_resistance, 2))) * 100
     # 2. Point ratio in the tolerance area
-    in_ratio = np.mean((abs(pred_V - synth_V) / synth_V) <= error_ratio) * 100
+    in_ratio = np.mean((abs(predicted_resistance - synthetic_resistance) / synthetic_resistance) <= error_ratio) * 100
 
     # plotting
     get_rcParams(params, figsize='s')
@@ -468,9 +471,9 @@ def crossplot_synth(synth_V, pred_V, mode=None, save_dir='.', suffix=None, param
     ax.plot([x_min, x_max],
             [x_min + abs(x_min * error_ratio), x_max - abs(x_max * error_ratio)],
             color='green', linestyle='dashed', linewidth=1)
-    ax.scatter(synth_V, pred_V, s=2, c='blue', alpha=.5)
+    ax.scatter(synthetic_resistance, predicted_resistance, s=2, c='blue', alpha=.5)
     ax.set_xlabel(r'Synthetic $\Delta V/I$')
-    ax.set_ylabel(r'Predictive $\Delta V/I$')
+    ax.set_ylabel(r'Predicted $\Delta V/I$')
     ax.xaxis.set_minor_locator(AutoMinorLocator(5))
     ax.yaxis.set_minor_locator(AutoMinorLocator(5))
 
@@ -510,7 +513,7 @@ def crossplot_synth(synth_V, pred_V, mode=None, save_dir='.', suffix=None, param
 
 def heatmap_synth(iterator, mode=None, save_dir='.', params=None):
     """
-    Heatmap of synthetic resistivty and predictive resistivity.
+    Heatmap of synthetic resistivity and predictive resistivity.
 
     Parameters
     ----------
@@ -556,14 +559,14 @@ def heatmap_synth(iterator, mode=None, save_dir='.', params=None):
     # read data in specific directory and calculate 2d histogram
     for tmp, file in enumerate(iterator):
         data = read_pkl(file.path)
-        synth_log_rho = data['synth_log_rho'].flatten()
-        pred_log_rho = data['pred_log_rho'].flatten()
-        hist, xedges, yedges = np.histogram2d(synth_log_rho, pred_log_rho, bins=(xedges, yedges))
+        synthetic_resistivity_log10 = data['synthetic_resistivity_log10'].flatten()
+        predicted_resistivity_log10 = data['predicted_resistivity_log10'].flatten()
+        hist, xedges, yedges = np.histogram2d(synthetic_resistivity_log10, predicted_resistivity_log10, bins=(xedges, yedges))
         heatmap += hist
-        MSE += np.square(np.subtract(synth_log_rho, pred_log_rho)).sum()
+        MSE += np.square(np.subtract(synthetic_resistivity_log10, predicted_resistivity_log10)).sum()
 
     try:
-        MSE = MSE / ((tmp + 1) * synth_log_rho.size)  # mean squared error
+        MSE = MSE / ((tmp + 1) * synthetic_resistivity_log10.size)  # mean squared error
     except NameError:
         raise ValueError('The iterator reaches the end or is empty.')
 
@@ -598,8 +601,8 @@ def heatmap_synth(iterator, mode=None, save_dir='.', params=None):
 
     # adjust property
     ax.set_aspect('equal', adjustable='box')
-    ax.set_xlabel(r'Synthetic resistivity $log_{10}(\Omega-m)$')
-    ax.set_ylabel(r'Predictive resistivity $log_{10}(\Omega-m)$')
+    ax.set_xlabel(r'Synthetic resistivity $(\Omega \bullet m,\/log_{10})$')
+    ax.set_ylabel(r'Predicted resistivity $(\Omega \bullet m,\/log_{10})$')
     fig.tight_layout()
 
     # different mode
@@ -691,7 +694,7 @@ def txrx_plot(true_V, pred_V, mode=None, save_dir='.', suffix=None, params=None)
         return fig
 
 
-def plot_result_synth(iterator, num_figs, xz, save_dir='.'):
+def plot_result_synth(iterator, num_figs, simulator, save_dir='.'):
     """
     Convenient function for saving crossplot, structure plot and heatmap of synthetic data.
 
@@ -711,20 +714,26 @@ def plot_result_synth(iterator, num_figs, xz, save_dir='.'):
 
     # create another iterator that is the same as the original iterator
     two_iterator_tuple = itertools.tee(iterator, 2)
+    xz = simulator.survey.electrode_locations
 
     num_figs = 1 if num_figs < 1 else num_figs
     i = 1
     for file in two_iterator_tuple[0]:
         data = read_pkl(file.path)
-        synth_V = data['synth_V']
-        pred_V = data['pred_V']
-        synth_log_rho = data['synth_log_rho']
-        pred_log_rho = data['pred_log_rho']
+        synthetic_resistance = data['synthetic_resistance']
+        predicted_resistance = data['predicted_resistance']
+        synthetic_resistivity_log10 = data['synthetic_resistivity_log10']
+        predicted_resistivity_log10 = data['predicted_resistivity_log10']
 
-        suffix = re.findall(r'\d+', file.path)[0]
-        crossplot_synth(synth_V, pred_V, mode='save', save_dir=save_dir, suffix=suffix)
-        txrx_plot(synth_V, pred_V, mode='save', save_dir=save_dir, suffix=suffix)
-        structureplot_synth(synth_log_rho, pred_log_rho, xz, mode='save', save_dir=save_dir, suffix=suffix)
+        suffix = re.findall(r'\d+(?=\.pkl)', file.path)[0]
+        crossplot_synth(
+            synthetic_resistance, predicted_resistance,
+            mode='save', save_dir=save_dir, suffix=suffix
+        )
+        structureplot_synth(
+            synthetic_resistivity_log10, predicted_resistivity_log10,
+            xz, mode='save', save_dir=save_dir, suffix=suffix
+        )
         if i == num_figs:
             break
         else:

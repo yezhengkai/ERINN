@@ -614,7 +614,7 @@ class URF(object):
         write_urf(urf_file, self.urf_info)
 
 
-def get_pkl_list(dir_path, limit=None):
+def get_pkl_list(dir_path, limit=None, sort=True, sort_key=None):
     if not os.path.exists(dir_path):
         warnings.warn(f'No such file or directory: {dir_path}, '
                       'return an empty list', UserWarning)
@@ -629,7 +629,10 @@ def get_pkl_list(dir_path, limit=None):
         file_list = [os.path.join(dir_path, file)
                      for file in _list_generator(dir_path, ext='.pkl')]
 
-    return file_list
+    if sort:
+        return sorted(file_list, key=sort_key)
+    else:
+        return file_list
 
 
 def _list_generator(dir_path, ext='.npz'):

@@ -57,7 +57,7 @@ def search_hdf5(h5, pattern, grp='/', recursive=True):
     ----------
     h5 : str
         hdf5 file path.
-    pattern :　compiled regular expression object
+    pattern : compiled regular expression object
         Particular string in the dataset paths of hdf5 to be searched.
     grp : str, default '/'
         The group path of hdf5 to be searched. Default is root group.
@@ -85,7 +85,7 @@ def search_hdf5(h5, pattern, grp='/', recursive=True):
     return match_list
 
 
-# TODO: prepare_for_get_2_5Dpara 修改或是刪掉
+# TODO: modify or delete prepare_for_get_2_5Dpara
 def prepare_for_get_2_5Dpara(config_json, return_urf=False):
     """Generate essential variables for matlab function get_2_5Dpara().
 

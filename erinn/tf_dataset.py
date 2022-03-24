@@ -16,12 +16,15 @@ from erinn.preprocessing import to_section
 from erinn.utils.io_utils import read_pkl
 
 
-def read_dataset(file_path, read_dataset_info):
+# TODO: docstring
+def read_dataset(input_file_path, target_file_path, read_dataset_info):
     """Read dataset from pickle files and preprocess it.
 
     Parameters
     ----------
-    file_path : str, os.PathLike or pathlib.Path
+    input_file_path : str, os.PathLike or pathlib.Path
+        The path of pickle file.
+    target_file_path : str, os.PathLike or pathlib.Path
         The path of pickle file.
     read_dataset_info : dict
 
@@ -33,9 +36,13 @@ def read_dataset(file_path, read_dataset_info):
         The target data of the neural network.
     """
     # read data and assign
-    data = read_pkl(file_path.numpy().decode('utf-8'))
-    resistance = data['resistance']
-    resistivity_log10 = data['resistivity_log10']
+    # data = read_pkl(file_path.numpy().decode('utf-8'))
+    # resistance = data['resistance']
+    # resistivity_log10 = data['resistivity_log10']
+    data = read_pkl(input_file_path.numpy().decode('utf-8'))
+    resistance = data
+    data = read_pkl(target_file_path.numpy().decode('utf-8'))
+    resistivity_log10 = data
     # parse read_dataset_info dictionary
     preprocess = read_dataset_info['preprocess']
     Tx_locations = read_dataset_info['Tx_locations']
@@ -65,12 +72,15 @@ def read_dataset(file_path, read_dataset_info):
     return resistance, resistivity_log10
 
 
-def tf_read_dataset(file_path, read_dataset_info):
+# TODO: docstring
+def tf_read_dataset(input_file_path, target_file_path, read_dataset_info):
     """Reading dataset from pickle files and preprocess it (TensorFlow version).
 
     Parameters
     ----------
-    file_path : str, os.PathLike or pathlib.Path
+    input_file_path : str, os.PathLike or pathlib.Path
+        The path of pickle file.
+    target_file_path : str, os.PathLike or pathlib.Path
         The path of pickle file.
     read_dataset_info : dict
 
@@ -90,9 +100,10 @@ def tf_read_dataset(file_path, read_dataset_info):
     par = partial(read_dataset, read_dataset_info=read_dataset_info)
     # wrapping par function with py_function
     [resistance, resistivity_log10] = tf.py_function(
-        par, [file_path], [tf.float32, tf.float32]
+        par, [input_file_path, target_file_path], [tf.float32, tf.float32]
     )
     # set tensor shape
     resistance.set_shape(read_dataset_info['input_shape'])
     resistivity_log10.set_shape(read_dataset_info['output_shape'])
+    # print(resistance, resistivity_log10) # for debug
     return resistance, resistivity_log10

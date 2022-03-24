@@ -11,5 +11,5 @@ from erinn import utils
 
 
 
-__version__ = '0.0.4'
-__author__ = 'Kai'
+__version__ = '0.1.0'
+__author__ = 'Zheng-Kai Ye'

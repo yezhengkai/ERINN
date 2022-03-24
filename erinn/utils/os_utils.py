@@ -49,7 +49,8 @@ def next_path(path_pattern, only_num=False):
     Parameters
     ----------
     path_pattern : str
-        The pattern contains numbers.
+        The pattern contains numbers in str.format syntax.
+        For example, "file{number}.txt".
     only_num : bool
         Whether to return only numbers.
 
@@ -65,9 +66,14 @@ def next_path(path_pattern, only_num=False):
     >>> Path('./tmp/file-1.txt').touch()
     >>> Path('./tmp/file-2.txt').touch()
     >>> Path('./tmp/file-3.txt').touch()
-    >>> path_pattern = './tmp/file-%s.txt'
+    >>> path_pattern = './tmp/file-{number}.txt'
     >>> print(next_path(path_pattern))
     ./tmp/file-4.txt
+    >>> Path('./tmp/file-001.txt').touch()
+    >>> Path('./tmp/file-002.txt').touch()
+    >>> path_pattern = './tmp/file-{number:0>3}.txt'
+    >>> print(next_path(path_pattern))
+    ./tmp/file-003.txt
     >>> shutil.rmtree('./tmp', ignore_errors=True)
 
     References
@@ -75,9 +81,8 @@ def next_path(path_pattern, only_num=False):
     .. [1] https://stackoverflow.com/questions/17984809/how-do-i-create-a-incrementing-filename-in-python
     """
     i = 1
-
     # First do an exponential search
-    while os.path.exists(path_pattern % i):
+    while os.path.exists(path_pattern.format(number=i)):
         i = i * 2
 
     # Result lies somewhere in the interval (i/2..i]
@@ -85,9 +90,9 @@ def next_path(path_pattern, only_num=False):
     a, b = (i // 2, i)
     while a + 1 < b:
         c = (a + b) // 2  # interval midpoint
-        a, b = (c, b) if os.path.exists(path_pattern % c) else (a, c)
+        a, b = (c, b) if os.path.exists(path_pattern.format(number=c)) else (a, c)
 
     if only_num:
         return b
     else:
-        return path_pattern % b
+        return path_pattern.format(number=b)

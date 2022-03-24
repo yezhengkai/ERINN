@@ -40,7 +40,7 @@ class Simulator(object):
         self._problem = None
         self.config = read_config_file(config_file)
 
-        # suitable for 2D surface survey now...
+        # FIXME: Only suitable for 2D surface survey now...
         # read urf file
         self.urf = URF(self.config['geometry_urf'],
                        survey_type='dipole-dipole',
@@ -287,10 +287,23 @@ def make_dataset(config_file):
         if num_examples == 0:
             pass
         else:
-            os.makedirs(dir_name, exist_ok=True)
-            suffix_num = next_path(os.path.join(dir_name, 'raw_data_%s.pkl'), only_num=True)
+            raw_resistance_dir = os.path.join(dir_name, 'resistance', 'raw')
+            raw_resistivity_dir = os.path.join(dir_name, 'resistivity', 'raw')
+            os.makedirs(raw_resistance_dir, exist_ok=True)
+            os.makedirs(raw_resistivity_dir, exist_ok=True)
+            suffix_num = next_path(
+                os.path.join(raw_resistance_dir, '{number:0>6}.pkl'),
+                only_num=True
+            )
+            # suffix_num = next_path(os.path.join(dir_name, 'raw_data_%s.pkl'), only_num=True)
 
-            par = partial(_make_dataset, simulator=simulator, dir_name=dir_name)
+            par = partial(
+                _make_dataset,
+                simulator=simulator,
+                raw_resistance_dir=raw_resistance_dir,
+                raw_resistivity_dir=raw_resistivity_dir
+            )
+            # par = partial(_make_dataset, simulator=simulator, dir_name=dir_name)
             resistivity_generator = simulator.get_random_resistivity_generator(num_examples=num_examples)
             suffix_generator = iter(range(suffix_num, suffix_num + num_examples))
             # use "fork" will freeze the process
@@ -303,7 +316,7 @@ def make_dataset(config_file):
             pool.join()
 
 
-def _make_dataset(zip_item, simulator, dir_name):
+def _make_dataset(zip_item, simulator, raw_resistance_dir, raw_resistivity_dir):
     """Protected function for parallel generate dataset.
 
     Generate noise-free synthetic data and save it as pickle.
@@ -323,7 +336,11 @@ def _make_dataset(zip_item, simulator, dir_name):
     with contextlib.redirect_stdout(None):
         data_synthetic = simulator.make_synthetic_data(resistivity, std=0)
     # pickle dump/load is faster than numpy savez_compressed(or save)/load
-    pkl_name = os.path.join(dir_name, f'raw_data_{suffix_num:0>6}.pkl')
-    write_pkl({'resistance': data_synthetic,
-               'resistivity_log10': np.log10(resistivity)},
-              pkl_name)
+    # pkl_name = os.path.join(dir_name, f'raw_data_{suffix_num:0>6}.pkl')
+    resistance_pkl_path = os.path.join(raw_resistance_dir, f'{suffix_num:0>6}.pkl')
+    resistivity_pkl_path = os.path.join(raw_resistivity_dir, f'{suffix_num:0>6}.pkl')
+    # write_pkl({'resistance': data_synthetic,
+    #            'resistivity_log10': np.log10(resistivity)},
+    #           pkl_name)
+    write_pkl(data_synthetic, resistance_pkl_path)
+    write_pkl(np.log10(resistivity), resistivity_pkl_path)
