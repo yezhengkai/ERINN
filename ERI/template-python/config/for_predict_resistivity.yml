@@ -1,0 +1,32 @@
+# - Inferring
+# -- Custom neural network
+custom_NN: "<module 'my_model' from '../../config/model.py'>"  # custom keras model
+# -- Directory
+# =====
+# Automatically read dataset in subdirectories with a specific directory name.
+# For example, ""../../data/trial1/testing/resistance/[midpoint]/", "../../data/trial1/testing/resistivity/[section]/
+dataset_rootdir: "../../data/trial1"
+resistance_dirname: "[midpoint]"
+resistivity_dirname: "[section]"
+# =====
+model_dir: "../../models/trial1"  # In this directory, the program will automatically create the predictions directory, read "simulator.pkl" and read "trained_weights" in a subdirectory named weights.
+# -- Preprocessing in tf.data.Dataset pipeline. *NOTE: Some operations are data augmentation.*
+preprocess:  # Add_noise is implemented earlier than log_transform
+  add_noise:  # Because we add random noise every time, this operation is data augmentation.
+    perform: False  # {True, False}. Whether to perform add_noise.
+    kwargs:
+      scale: 0.1  # Noise added to element is proportional to this value.
+      noise_type: "normal"  # {'normal', 'uniform'}
+  log_transform:
+    perform: False  # {True, False}. Whether to perform log_transform.
+    kwargs:
+      inverse: False  # {True, False}. Whether to perform an inverse transformation.
+      inplace: True  # {True, False}. Whether to use inplace mode.
+  to_midpoint:  # Reshape "inputs" tensor to midpoint image. shape = (accumulated number of same midpoint, number of midpoint, 1)
+    perform: False  # {True, False}. Whether to perform to_midpoint. *NOTE: Don't use `to_midpoint` and `to_txrx` at the same time*
+  to_txrx:  # Reshape "inputs" tensor to Tx-Rx image. shape = (number of Tx pair, number of Rx pair, 1)
+    perform: False  # {True, False}. Whether to perform to_TxRx. *NOTE: Don't use `to_midpoint` and `to_txrx` at the same time*
+  to_section:  # Reshape "target" tensor to section image. shape = (number of cell center mesh in z direction, number of cell center mesh in x direction, 1)
+    perform: False  # {True, False}. Whether to perform to_section.
+# -- Hyper parameters
+num_gpu: 2  # Number of gpu

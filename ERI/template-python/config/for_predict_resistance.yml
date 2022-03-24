@@ -1,0 +1,3 @@
+# - Physical simulation
+# -- Directory
+model_dir: "../../models/trial1"  # In this directory, the program will automatically read "simulator.pkl" and read data in a subdirectory named predictions

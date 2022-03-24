@@ -1,0 +1,37 @@
+# - Preprocess raw data and save as processed data.
+dataset_dir: "../../data/trial1"  # Walk through this directory (contain subdirectory) to read raw data (pickle file).
+save_as_float32: True  # {True, False}
+# save_processed_data_dir: "../../data/processed_data1"  # Processed dataset is saved in this directory. (subdirectories and simulator.pkl will be created automatically)
+preprocess:
+  resistance:  # preprocess resistance.
+    pipeline1:
+      add_noise:
+        scale: 0.1  # Noise added to element is proportional to this value.
+        noise_type: "normal"  # {'normal', 'uniform'}
+        seed:   # empty is meant None
+        inplace: True  # {True, False}. Whether to use inplace mode.
+    pipeline2:
+      log_transform:  # You can also perform log transform in data generator.
+        inverse: False  # {True, False}. Whether to perform an inverse transformation.
+        inplace: True  # {True, False}. Whether to use inplace mode.
+    pipeline3:
+      to_midpoint:  # Reshape "input" tensor to midpoint image. shape = (accumulated number of same midpoint, number of midpoint, 1)
+        value: 0.0  # The value of the blank element you want to fill in.
+        dim: 3  # {2, 3}. Dimension of reshaped array.
+    pipeline4:
+      to_txrx:  # Reshape "input" tensor to Tx-Rx image. shape = (number of Tx pair, number of Rx pair, 1)
+        value: 0.0  # The value of the blank element you want to fill in.
+        dim: 3  # {2, 3}. Dimension of reshaped array.
+    pipeline5:
+      add_noise:
+        scale: 0.1  # Noise added to element is proportional to this value.
+        noise_type: "normal"  # {'normal', 'uniform'}
+        seed:   # empty is meant None
+        inplace: True  # {True, False}. Whether to use inplace mode.
+      to_txrx:
+        value: 0.0  # The value of the blank element you want to fill in.
+        dim: 3  # {2, 3}. Dimension of reshaped array.
+  resistivity:  # preprocess resistivity_log10
+    pipeline1:
+      to_section:  # Reshape "target" tensor to section image. If dim==3, the shape = (number of cell center mesh in z direction, number of cell center mesh in x direction, 1)
+        dim: 3  # {2, 3}. Dimension of reshaped array.

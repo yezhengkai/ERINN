@@ -1,0 +1,50 @@
+# - Training/Inferring
+# -- Custom neural network
+custom_NN: "<module 'my_model' from '../../config/model.py'>"  # custom keras model
+# -- Directory
+# =====
+# Automatically read dataset in subdirectories with a specific directory name.
+# For example, ""../../data/trial1/training/resistance/[midpoint]/", "../../data/trial1/validation/resistivity/[section]/
+dataset_rootdir: "../../data/trial1"
+resistance_dirname: "[midpoint]"
+resistivity_dirname: "[section]"
+# =====
+save_model_dir: "../../models/trial1"  # In this directory, the program will automatically create the logs/weights directory and simulator.pkl.
+pre_trained_weights: ""  # HDF5 file saved the weight of the keras model. If you don't want to use pre-trained weights, use an empty string.
+# -- Preprocessing in tf.data.Dataset pipeline. *NOTE: Some operations are data augmentation.*
+preprocess:  # Add_noise is implemented earlier than log_transform
+  add_noise:  # Because we add random noise every time, this operation is data augmentation.
+    perform: False  # {True, False}. Whether to perform add_noise.
+    kwargs:
+      scale: 0.1  # Noise added to element is proportional to this value.
+      noise_type: "normal"  # {'normal', 'uniform'}
+  log_transform:
+    perform: False  # {True, False}. Whether to perform log_transform.
+    kwargs:
+      inverse: False  # {True, False}. Whether to perform an inverse transformation.
+      inplace: True  # {True, False}. Whether to use inplace mode.
+  to_midpoint:  # Reshape "inputs" tensor to midpoint image. shape = (accumulated number of same midpoint, number of midpoint, 1)
+    perform: False  # {True, False}. Whether to perform to_midpoint. *NOTE: Don't use `to_midpoint` and `to_txrx` at the same time*
+  to_txrx:  # Reshape "inputs" tensor to Tx-Rx image. shape = (number of Tx pair, number of Rx pair, 1)
+    perform: False  # {True, False}. Whether to perform to_TxRx. *NOTE: Don't use `to_midpoint` and `to_txrx` at the same time*
+  to_section:  # Reshape "target" tensor to section image. shape = (number of cell center mesh in z direction, number of cell center mesh in x direction, 1)
+    perform: False  # {True, False}. Whether to perform to_section.
+# -- Accelerate
+# The following acceleration methods do not speed up every time, perhaps due to software and hardware limitations. Use with caution.
+enable_XLA: False  # {True, False}. Whether to enable XLA (Accelerated Linear Algebra).
+enable_mixed_float16: False  # {True, False}. Whether to enable mixed precision.
+# -- Hyper parameters
+num_gpu: 4  # Number of gpu
+batch_size: 32  # Size for mini-batch gradient descent
+num_epochs: 100  # Number of epochs
+optimizer:
+  class_name: "Adam"  # Select the optimizer defined in tf.keras
+  config:  # You can add parameters that correspond to a specific optimizer.
+    learning_rate: 1e-4
+    beta_1: 0.9
+    beta_2: 0.999
+    epsilon: 1e-07
+    amsgrad: False
+    # clipnorm: 1
+    # clipvalue: 0.5
+loss: "mean_squared_error"  # Select the loss function in tf.keras.

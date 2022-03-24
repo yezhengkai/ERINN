@@ -1,0 +1,5 @@
+# - Plot figures
+# -- Directory
+model_dir: "../../models/trial1"  # In this directory, the program will automatically read "simulator.pkl" and read data in a subdirectory named predictions
+save_figs_dir: "../../reports/trial1"
+num_figs: "all"  # The number of figures to save. (use "all" to save all figures)

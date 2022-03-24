@@ -1,0 +1,82 @@
+# - Use simpeg to generate dataset for training/validation/testing
+# -- Generic setting
+save_dataset_dir: "../../data/trial1"  # In this directory, the program will automatically create a training / validation / testing directory for storing data and a "simulator.pkl" for recording simulation information.
+num_examples: 10  # Number of examples. That is, the total number of synthetic models that will be generated in one round.
+train_ratio: 0.8  # Ratio of the number of examples (num_examples) to be used for training.
+valid_ratio: 0.1  # Ratio of the number of examples (num_examples) to be used for validating.
+test_ratio: 0.1  # Ratio of the number of examples (num_examples) to be used for testing.
+geometry_urf: "../../config/geo.urf"  # The path to the urf file is used to construct the electrode array in forward simulation.
+terrain_file: "../../config/geo.trn"  # The path to the terrain file is used to construct the electrode array in forward simulation.
+array_type: "all_combination"  # {"all_combination", "Wenner"}. Select the electrode pair that matches the array configuration. All array types are dipole-dipole settings.
+
+# -- Generate synthetic models randomly. (NOTE: we will use truncated normal distribution in linear scale)
+# --- Generic setting
+# ---- For SimPEG.EM.Static.DC.IO.set_mesh function
+# =================================================
+# core_x_length = lineLength + dx * 6
+# if core_x_length * 0.2 > delta_terrain:
+#     core_z_length = core_x_length * 0.2
+# else:
+#     core_z_length = delta_terrain * 1.75
+# =================================================
+dx: 1  # Mesh length in x direction.
+dz: 1  # Mesh length in z direction.
+num_pad_x: 12  # Number of padding mesh in the x direction (both sides).
+num_pad_z: 12  # Number of padding mesh in the z direction (lower side only).
+pad_rate_x: 1  # Rate of change of padding mesh in the x direction.
+pad_rate_z: 1  # Rate of change of padding mesh in the z direction.
+# ---- This kernel is used to smooth (moving average) synthetic resistivity models in linear scale.
+x_kernel_size: 3  # Kernel size in the x direction.
+z_kernel_size: 3  # Kernel size in the z direction.
+
+# --- Background
+scale_background: "log10"  # {"linear", "log10"}. The resistivity scale during the sampling phase.
+pdf_background: "normal"  # {"uniform", "normal"}. The probability distribution function of the sample.
+a_background: 2.7  # Lower bound or mu (mean) of pdf_background.
+b_background: 0.6  # Upper bound or std (standard deviation) of pdf_background.
+# ---- Use following parameters to simulate porous media (Each mesh has a different value).
+use_hidden_background: True  # {True, False}. If True, it will use `hidden_*` to control a_background and b_background.
+hidden_pdf_background: "normal"  # {"uniform", "normal"}. The hidden probability distribution function of the a_background and b_background.
+hidden_a_for_a_background: 2.7  # Lower bound or mu (mean) of hidden_pdf_background for hidden variable a_background.
+hidden_b_for_a_background: 0.3  # Upper bound or std(standard deviation) of hidden_pdf_background for hidden variable a_background.
+hidden_a_for_b_background: 0.6  # Lower bound or mu (mean) of hidden_pdf_background for hidden variable b_background.
+hidden_b_for_b_background: 0.1  # Upper bound or std(standard deviation) for hidden variable b_background.
+
+# --- Rectangle (block)
+num_rect:  # Number of rectangles.
+  type: "list"  # {"list", "range"}. The interval of type "range" including start but excluding stop.
+  value: [0, 1, 2]  # Random sampling in `value` defined by `type`.
+# ---- Geometry
+w_range: [1, 150]  # Width range (x direction).
+h_range: [1, 30]  # Height range (z direction).
+# ---- Value
+scale_rect: "log10"  # {"linear", "log10"}. The resistivity scale during the sampling phase.
+pdf_rect: "normal"  # {"uniform", "normal"}. The probability distribution function of the sample.
+a_rect: 2.7  # Lower bound or mu (mean) of pdf_background.
+b_rect: 0.6  # Upper bound or std (standard deviation) of pdf_background.
+# ----- Use following parameters to simulate porous media (Each mesh has a different value).
+use_hidden_rect: True  # {True, False}. If True, it will use `hidden_*` to control a_rect and b_rect.
+hidden_pdf_rect: "normal"  # {"uniform", "normal"}. The hidden probability distribution function of the a_rect and b_rect.
+hidden_a_for_a_rect: 2.7  # Lower bound or mu (mean) of hidden_pdf_background for hidden variable a_rect.
+hidden_b_for_a_rect: 0.3  # Upper bound or std(standard deviation) of hidden_pdf_background for hidden variable a_rect.
+hidden_a_for_b_rect: 0.6  # Lower bound or mu (mean) of hidden_pdf_background for hidden variable b_rect.
+hidden_b_for_b_rect: 0.1  # Upper bound or std(standard deviation) for hidden variable b_rect.
+
+# --- Circle
+num_circle:  # Number of circles.
+  type: "list"  # {"list", "range"}. The interval of type "range" including start but excluding stop.
+  value: [0, 1, 2]  # Random sampling in `value` defined by `type`.
+# ---- Geometry
+radius_bound: [1, 75]  # Lower bound and upper bound of radius.
+# ---- Value
+scale_circle: "log10"  # {"linear", "log10"}. The resistivity scale during the sampling phase.
+pdf_circle: "normal"  # {"uniform", "normal"}. The probability distribution function of the sample.
+a_circle: 2.7  # Lower bound or mu (mean) of pdf_background.
+b_circle: 0.6  # Upper bound or std (standard deviation) of pdf_background.
+# ----- Use following parameters to simulate porous media (Each mesh has a different value).
+use_hidden_circle: True  # {True, False}. If True, it will use `hidden_*` to control a_circle and b_circle.
+hidden_pdf_circle: "normal"  # {"uniform", "normal"}. The hidden probability distribution function of the a_circle and b_circle.
+hidden_a_for_a_circle: 2.7  # Lower bound or mu (mean) of hidden_pdf_background for hidden variable a_circle.
+hidden_b_for_a_circle: 0.3  # Upper bound or std(standard deviation) of hidden_pdf_background for hidden variable a_circle.
+hidden_a_for_b_circle: 0.6  # Lower bound or mu (mean) of hidden_pdf_background for hidden variable b_circle.
+hidden_b_for_b_circle: 0.1  # Upper bound or std(standard deviation) for hidden variable b_circle.
