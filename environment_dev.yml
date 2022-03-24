@@ -1,0 +1,7 @@
+name: erinn-dev
+channels:
+dependencies:
+   - python>=3.6
+   - pip
+   - pip:
+     - -r requirements_dev.txt
