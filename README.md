@@ -18,7 +18,7 @@ First, you should download this repository and then follow the instructions belo
 - Install [Anaconda](https://www.anaconda.com/products/individual) and set your preferred shell environment so that you can use the `conda` command.
 - Open your preferred shell and change the directory to the repository you downloaded.
 - Use `conda env update --prune --file environment.yml` to create a new conda environment and install dependencies. (If you want to create a new dev conda environment, use `conda env update --prune --file environment_dev.yml`)
-- Use `conda develop erinn` to install package of the current project in "development mode".
+- Use `conda develop src` to install package of the current project in "development mode".
 
 ### Use poetry
 - Make sure you have python interpreter in your system.
@@ -30,7 +30,7 @@ First, you should download this repository and then follow the instructions belo
 - Make sure you have python interpreter and pip in your system.
 - Open your preferred shell and change the directory to the repository you downloaded.
 - Use `pip install -r requirement.txt` to install dependencies. (If you want to install dev dependencies, use `pip install -r requirement_dev.txt`)
-- Use `pip install -e erinn` to install package of the current project in "development mode".
+- Use `pip install -e src` to install package of the current project in "development mode".
 
 
 ## ERI project
