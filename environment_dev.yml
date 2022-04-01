@@ -1,7 +1,7 @@
 name: erinn-dev
 channels:
 dependencies:
-   - python>=3.6
+   - python>=3.6, <3.7
    - pip
    - pip:
      - -r requirements_dev.txt
